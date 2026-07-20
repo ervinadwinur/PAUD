@@ -1,0 +1,222 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ================== ENUM ==================
+
+enum Role {
+  ADMIN
+  GURU
+  ORANGTUA
+}
+
+enum JenisKelamin {
+  LAKI_LAKI
+  PEREMPUAN
+}
+
+enum StatusAbsensi {
+  HADIR
+  IZIN
+  SAKIT
+  ALPA
+}
+
+enum StatusPembayaran {
+  BELUM_BAYAR
+  MENUNGGU_VERIFIKASI
+  LUNAS
+  DITOLAK
+}
+
+// ================== KELOLA PENGGUNA / LOGIN ==================
+
+model User {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique
+  email     String?  @unique
+  password  String
+  role      Role
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  guru     Guru?
+  orangTua OrangTua?
+
+  @@map("users")
+}
+
+// ================== KELOLA DATA GURU ==================
+
+model Guru {
+  id         Int      @id @default(autoincrement())
+  userId     Int      @unique
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  nama       String
+  nip        String?  @unique
+  noTelepon  String?
+  alamat     String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  kelas          Kelas[]
+  kegiatanHarian KegiatanHarian[]
+  perkembangan   Perkembangan[]
+  rapor          Rapor[]
+
+  @@map("guru")
+}
+
+// ================== KELOLA DATA ORANG TUA ==================
+
+model OrangTua {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  nama      String
+  noTelepon String?
+  alamat    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  anak Siswa[]
+
+  @@map("orang_tua")
+}
+
+// ================== KELOLA DATA KELAS ==================
+
+model Kelas {
+  id        Int      @id @default(autoincrement())
+  nama      String
+  tahunAjaran String?
+  guruId    Int?
+  guru      Guru?    @relation(fields: [guruId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  siswa Siswa[]
+
+  @@map("kelas")
+}
+
+// ================== KELOLA DATA SISWA ==================
+
+model Siswa {
+  id           Int          @id @default(autoincrement())
+  nis          String       @unique
+  nama         String
+  tanggalLahir DateTime
+  jenisKelamin JenisKelamin
+  alamat       String?
+  fotoUrl      String?
+  kelasId      Int?
+  kelas        Kelas?       @relation(fields: [kelasId], references: [id])
+  orangTuaId   Int?
+  orangTua     OrangTua?    @relation(fields: [orangTuaId], references: [id])
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  absensi        Absensi[]
+  kegiatanHarian KegiatanHarian[]
+  perkembangan   Perkembangan[]
+  rapor          Rapor[]
+  pembayaran     Pembayaran[]
+
+  @@map("siswa")
+}
+
+// ================== KELOLA / INPUT ABSENSI ==================
+
+model Absensi {
+  id         Int           @id @default(autoincrement())
+  siswaId    Int
+  siswa      Siswa         @relation(fields: [siswaId], references: [id], onDelete: Cascade)
+  tanggal    DateTime
+  status     StatusAbsensi
+  keterangan String?
+  createdAt  DateTime      @default(now())
+
+  @@unique([siswaId, tanggal])
+  @@map("absensi")
+}
+
+// ================== INPUT KEGIATAN HARIAN ==================
+
+model KegiatanHarian {
+  id        Int      @id @default(autoincrement())
+  siswaId   Int
+  siswa     Siswa    @relation(fields: [siswaId], references: [id], onDelete: Cascade)
+  guruId    Int
+  guru      Guru     @relation(fields: [guruId], references: [id])
+  tanggal   DateTime
+  judul     String
+  deskripsi String
+  fotoUrl   String?
+  createdAt DateTime @default(now())
+
+  @@map("kegiatan_harian")
+}
+
+// ================== KELOLA PERKEMBANGAN ANAK ==================
+
+model Perkembangan {
+  id        Int      @id @default(autoincrement())
+  siswaId   Int
+  siswa     Siswa    @relation(fields: [siswaId], references: [id], onDelete: Cascade)
+  guruId    Int
+  guru      Guru     @relation(fields: [guruId], references: [id])
+  aspek     String   // mis: motorik, kognitif, bahasa, sosial-emosional
+  deskripsi String
+  tanggal   DateTime
+  createdAt DateTime @default(now())
+
+  @@map("perkembangan_anak")
+}
+
+// ================== KELOLA RAPOR ==================
+
+model Rapor {
+  id          Int      @id @default(autoincrement())
+  siswaId     Int
+  siswa       Siswa    @relation(fields: [siswaId], references: [id], onDelete: Cascade)
+  guruId      Int
+  guru        Guru     @relation(fields: [guruId], references: [id])
+  semester    String
+  tahunAjaran String
+  fileUrl     String?
+  catatan     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([siswaId, semester, tahunAjaran])
+  @@map("rapor")
+}
+
+// ================== VERIFIKASI / UNGGAH PEMBAYARAN SPP ==================
+
+model Pembayaran {
+  id                Int              @id @default(autoincrement())
+  siswaId           Int
+  siswa             Siswa            @relation(fields: [siswaId], references: [id], onDelete: Cascade)
+  bulan             Int
+  tahun             Int
+  jumlah            Int
+  status            StatusPembayaran @default(BELUM_BAYAR)
+  buktiUrl          String?
+  tanggalUpload     DateTime?
+  tanggalVerifikasi DateTime?
+  diverifikasiOleh  Int?
+  catatan           String?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  @@unique([siswaId, bulan, tahun])
+  @@map("pembayaran_spp")
+}
