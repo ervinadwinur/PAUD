@@ -1,15 +1,15 @@
 // src/pages/guru/Absensi.jsx
 import { useEffect, useMemo, useState } from "react";
-import { Save } from "lucide-react";
+import { Save, Users, CalendarDays, ClipboardCheck } from "lucide-react";
 import api from "../../services/api";
 import { useSiswaList } from "../../hooks/useSiswaList";
 import { useKelasList } from "../../hooks/useKelasList";
 
 const STATUS_OPTIONS = [
-  { value: "HADIR", label: "Hadir" },
-  { value: "IZIN", label: "Izin" },
-  { value: "SAKIT", label: "Sakit" },
-  { value: "ALPA", label: "Alpa" },
+  { value: "HADIR", label: "Hadir", active: "bg-emerald-500 text-white", idle: "bg-emerald-50 text-emerald-600 hover:bg-emerald-100" },
+  { value: "IZIN", label: "Izin", active: "bg-amber-500 text-white", idle: "bg-amber-50 text-amber-600 hover:bg-amber-100" },
+  { value: "SAKIT", label: "Sakit", active: "bg-sky-500 text-white", idle: "bg-sky-50 text-sky-600 hover:bg-sky-100" },
+  { value: "ALPA", label: "Alpa", active: "bg-rose-500 text-white", idle: "bg-rose-50 text-rose-600 hover:bg-rose-100" },
 ];
 
 function todayISO() {
@@ -88,118 +88,188 @@ export default function Absensi() {
     }
   }
 
-  return (
-    <div className="p-6">
-      <h1 className="font-display text-2xl font-bold tracking-tight text-slate-900">
-        Input Absensi
-      </h1>
-      <p className="mt-1 text-sm text-slate-500">
-        Pilih kelas dan tanggal, lalu tandai kehadiran tiap siswa.
-      </p>
+  const summary = STATUS_OPTIONS.map((opt) => ({
+    ...opt,
+    count: siswaKelas.filter((s) => rows[s.id]?.status === opt.value).length,
+  }));
+  const belumDiisi = siswaKelas.filter((s) => !rows[s.id]?.status).length;
 
-      <div className="mt-5 flex flex-wrap items-end gap-3">
-        <div>
-          <label className="mb-1 block text-xs font-medium text-slate-500">Kelas</label>
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="font-display text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+          Input Absensi
+        </h1>
+        <p className="mt-1 text-sm text-slate-500">
+          Pilih kelas dan tanggal, lalu tandai kehadiran tiap siswa.
+        </p>
+      </div>
+
+      {/* Filter & simpan */}
+      <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-end">
+        <div className="flex-1">
+          <label className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-slate-500">
+            <Users size={12} /> Kelas
+          </label>
           <select
             value={kelasId}
             onChange={(e) => setKelasId(e.target.value)}
-            className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800 outline-none focus:border-[#3C8A7D]/40 focus:bg-white focus:ring-4 focus:ring-[#3C8A7D]/10"
+            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-800 outline-none focus:border-[#3C8A7D]/40 focus:bg-white focus:ring-4 focus:ring-[#3C8A7D]/10"
           >
             <option value="">Semua kelas</option>
             {kelasList.map((k) => (
               <option key={k.id} value={k.id}>
-                {k.nama}
+                Kelas {k.nama}
               </option>
             ))}
           </select>
         </div>
-        <div>
-          <label className="mb-1 block text-xs font-medium text-slate-500">Tanggal</label>
+        <div className="flex-1">
+          <label className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-slate-500">
+            <CalendarDays size={12} /> Tanggal
+          </label>
           <input
             type="date"
             value={tanggal}
             onChange={(e) => setTanggal(e.target.value)}
-            className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800 outline-none focus:border-[#3C8A7D]/40 focus:bg-white focus:ring-4 focus:ring-[#3C8A7D]/10"
+            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-800 outline-none focus:border-[#3C8A7D]/40 focus:bg-white focus:ring-4 focus:ring-[#3C8A7D]/10"
           />
         </div>
         <button
           onClick={handleSaveAll}
           disabled={saving}
-          className="ml-auto inline-flex items-center gap-2 rounded-xl bg-[#16302C] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#1E3D3A] disabled:opacity-60"
+          className="flex items-center justify-center gap-2 rounded-xl bg-[#16302C] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#1E3D3A] disabled:cursor-not-allowed disabled:opacity-60"
         >
           <Save size={15} />
           {saving ? "Menyimpan…" : "Simpan Semua"}
         </button>
       </div>
 
+      {/* Notifikasi */}
       {message && (
-        <div className="mt-4 rounded-xl border border-[#3C8A7D]/20 bg-[#3C8A7D]/5 px-4 py-3 text-sm text-[#3C8A7D]">
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
           {message}
         </div>
       )}
       {error && (
-        <div className="mt-4 rounded-xl border border-[#FF6F59]/20 bg-[#FF6F59]/5 px-4 py-3 text-sm text-[#C4432F]">
+        <div className="rounded-xl border border-[#FF6F59]/20 bg-[#FF6F59]/5 px-4 py-3 text-sm font-medium text-[#C4432F]">
           {error}
         </div>
       )}
 
-      <div className="mt-5 overflow-hidden rounded-xl border border-slate-200">
-        <table className="w-full text-left text-sm">
-          <thead className="bg-slate-50 text-xs font-medium uppercase tracking-wide text-slate-500">
-            <tr>
-              <th className="px-4 py-3">Nama Siswa</th>
-              <th className="px-4 py-3">Status</th>
-              <th className="px-4 py-3">Keterangan</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {loadingSiswa ? (
-              <tr>
-                <td colSpan={3} className="px-4 py-8 text-center text-slate-400">
-                  Memuat siswa…
-                </td>
+      {/* Ringkasan status */}
+      {!loadingSiswa && siswaKelas.length > 0 && (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+          {summary.map((s) => (
+            <div
+              key={s.value}
+              className="rounded-2xl border border-slate-200 bg-white p-3.5 text-center shadow-sm"
+            >
+              <p className="text-lg font-bold text-slate-900">{s.count}</p>
+              <p className="text-xs text-slate-500">{s.label}</p>
+            </div>
+          ))}
+          <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/60 p-3.5 text-center">
+            <p className="text-lg font-bold text-slate-400">{belumDiisi}</p>
+            <p className="text-xs text-slate-400">Belum diisi</p>
+          </div>
+        </div>
+      )}
+
+      {/* Tabel siswa */}
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead>
+              <tr className="border-b border-slate-100 bg-slate-50/60 text-xs uppercase tracking-wide text-slate-500">
+                <th className="px-5 py-3 font-semibold">Nama Siswa</th>
+                <th className="px-5 py-3 font-semibold">Status</th>
+                <th className="px-5 py-3 font-semibold">Keterangan</th>
               </tr>
-            ) : siswaKelas.length === 0 ? (
-              <tr>
-                <td colSpan={3} className="px-4 py-8 text-center text-slate-400">
-                  Tidak ada siswa di kelas ini.
-                </td>
-              </tr>
-            ) : (
-              siswaKelas.map((s) => (
-                <tr key={s.id} className="text-slate-700">
-                  <td className="px-4 py-3 font-medium text-slate-900">{s.nama}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex gap-1">
-                      {STATUS_OPTIONS.map((opt) => (
-                        <button
-                          key={opt.value}
-                          type="button"
-                          onClick={() => updateRow(s.id, "status", opt.value)}
-                          className={`rounded-lg px-2.5 py-1 text-xs font-medium transition ${
-                            rows[s.id]?.status === opt.value
-                              ? "bg-[#16302C] text-white"
-                              : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                          }`}
-                        >
-                          {opt.label}
-                        </button>
-                      ))}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <input
-                      value={rows[s.id]?.keterangan || ""}
-                      onChange={(e) => updateRow(s.id, "keterangan", e.target.value)}
-                      placeholder="Opsional"
-                      className="w-full rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-sm outline-none focus:border-[#3C8A7D]/40 focus:bg-white"
-                    />
+            </thead>
+            <tbody>
+              {loadingSiswa ? (
+                Array.from({ length: 4 }).map((_, i) => (
+                  <tr key={i} className="border-b border-slate-50 last:border-0">
+                    <td className="px-5 py-3.5">
+                      <div className="flex items-center gap-3">
+                        <span className="h-9 w-9 animate-pulse rounded-full bg-slate-100" />
+                        <span className="h-3.5 w-32 animate-pulse rounded bg-slate-100" />
+                      </div>
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <span className="block h-7 w-48 animate-pulse rounded-lg bg-slate-100" />
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <span className="block h-7 w-32 animate-pulse rounded-lg bg-slate-100" />
+                    </td>
+                  </tr>
+                ))
+              ) : siswaKelas.length === 0 ? (
+                <tr>
+                  <td colSpan={3} className="px-5 py-12 text-center">
+                    <ClipboardCheck size={26} className="mx-auto text-slate-300" />
+                    <p className="mt-3 text-sm text-slate-500">
+                      Tidak ada siswa di kelas ini.
+                    </p>
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : (
+                siswaKelas.map((s) => (
+                  <tr
+                    key={s.id}
+                    className="border-b border-slate-50 last:border-0 hover:bg-slate-50/60"
+                  >
+                    <td className="px-5 py-3.5">
+                      <div className="flex items-center gap-3">
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#3C8A7D] text-xs font-bold text-white">
+                          {s.nama
+                            .split(" ")
+                            .map((n) => n[0])
+                            .slice(0, 2)
+                            .join("")}
+                        </span>
+                        <span className="font-medium text-slate-800">
+                          {s.nama}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <div className="flex flex-wrap gap-1.5">
+                        {STATUS_OPTIONS.map((opt) => {
+                          const active = rows[s.id]?.status === opt.value;
+                          return (
+                            <button
+                              key={opt.value}
+                              type="button"
+                              onClick={() => updateRow(s.id, "status", opt.value)}
+                              className={`rounded-lg px-2.5 py-1.5 text-xs font-medium transition ${
+                                active ? opt.active : opt.idle
+                              }`}
+                            >
+                              {opt.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <input
+                        value={rows[s.id]?.keterangan || ""}
+                        onChange={(e) =>
+                          updateRow(s.id, "keterangan", e.target.value)
+                        }
+                        placeholder="Opsional"
+                        className="w-full min-w-[140px] rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-sm outline-none focus:border-[#3C8A7D]/40 focus:bg-white focus:ring-2 focus:ring-[#3C8A7D]/10"
+                      />
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

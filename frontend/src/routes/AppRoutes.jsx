@@ -7,6 +7,7 @@ import AdminLayout from "../layouts/AdminLayout";
 import AdminRoutes from "./AdminRoutes";
 import GuruRoutes from "./GuruRoutes";
 import OrangTuaRoutes from "./OrangTuaRoutes";
+import OrangtuaLayout from "../layouts/OrangtuaLayout";
 import GuruLayout from "../layouts/GuruLayout";
 
 const AppRoutes = () => {
@@ -29,8 +30,9 @@ const AppRoutes = () => {
       </Route>
 
         {/* Orang Tua */}
-        <Route path="/orangtua/*" element={<OrangTuaRoutes />} />
-
+        <Route path="/orangtua/*" element={<OrangtuaLayout/>}>
+        <Route path="*" element={<OrangTuaRoutes />} />
+        </Route>
         {/* 404 */}
         <Route path="*" element={<h1>404 - Halaman Tidak Ditemukan</h1>} />
       </Routes>

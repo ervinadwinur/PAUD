@@ -8,7 +8,7 @@ import {
   ChevronsLeft,
   ChevronsRight,
 } from "lucide-react";
-import { menuConfig, accentMap } from "../../utils/menuConfig";
+
 import { useAuth } from "../../hooks/useAuth";
 
 /**

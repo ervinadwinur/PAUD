@@ -1,25 +1,34 @@
 // src/layouts/GuruLayout.jsx
 import { useState } from "react";
-import { Outlet, useMatches } from "react-router-dom";
-import Sidebar from "../components/common/Sidebar";
-import Navbar from "../components/common/Navbar";
+import { Outlet, useLocation } from "react-router-dom";
+import GuruSidebar from "../components/guru/GuruSidebar";
+import GuruNavbar from "../components/guru/GuruNavbar";
+
+// Mapping path -> label breadcrumb (sesuaikan dengan route guru kamu)
+const BREADCRUMB_MAP = {
+  "/guru/dashboard": "Dashboard",
+  "/guru/kelas": "Kelas",
+  "/guru/absensi": "Absensi",
+  "/guru/kegiatan-harian": "Kegiatan Harian",
+  "/guru/perkembangan": "Perkembangan Anak",
+  "/guru/rapor": "Rapor",
+};
 
 export default function GuruLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const matches = useMatches();
+  const location = useLocation();
 
-  const breadcrumb = matches
-    .filter((m) => m.handle?.crumb)
-    .map((m) => ({ label: m.handle.crumb, path: m.pathname }));
+  const label = BREADCRUMB_MAP[location.pathname];
+  const breadcrumb = label ? [{ label }] : [{ label: "Dashboard" }];
 
   return (
     <div className="flex h-screen bg-slate-50">
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <GuruSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       <div className="flex flex-1 flex-col overflow-hidden">
-        <Navbar
+        <GuruNavbar
           onMenuClick={() => setSidebarOpen(true)}
-          breadcrumb={breadcrumb.length ? breadcrumb : [{ label: "Dashboard" }]}
+          breadcrumb={breadcrumb}
         />
 
         <main className="flex-1 overflow-y-auto p-4 lg:p-8">

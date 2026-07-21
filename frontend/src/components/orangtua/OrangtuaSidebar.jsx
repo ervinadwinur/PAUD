@@ -1,14 +1,14 @@
+// src/components/orangtua/OrangtuaSidebar.jsx
 import { NavLink } from "react-router-dom";
 import {
   X,
   Sprout,
   LayoutDashboard,
-  Users,
+  Baby,
   ClipboardCheck,
   BookOpen,
-  TrendingUp,
   FileText,
-  BarChart3,
+  Wallet,
   ChevronsLeft,
   ChevronsRight,
 } from "lucide-react";
@@ -18,25 +18,28 @@ import { useAuth } from "../../hooks/useAuth";
 const menuSections = [
   {
     title: "Utama",
-    items: [{ label: "Dashboard", path: "/guru/dashboard", icon: LayoutDashboard }],
-  },
-  {
-    title: "Kelas Saya",
     items: [
-      { label: "Data Siswa", path: "/guru/siswa", icon: Users },
-      { label: "Absensi", path: "/guru/absensi", icon: ClipboardCheck },
-      { label: "Kegiatan Harian", path: "/guru/kegiatan", icon: BookOpen },
-      { label: "Perkembangan Anak", path: "/guru/perkembangan", icon: TrendingUp },
-      { label: "Raport", path: "/guru/raport", icon: FileText },
+      { label: "Dashboard", path: "/orangtua/dashboard", icon: LayoutDashboard },
     ],
   },
   {
-    title: "Lainnya",
-    items: [{ label: "Laporan", path: "/guru/laporan", icon: BarChart3 }],
+    title: "Anak Saya",
+    items: [
+      { label: "Data Anak", path: "/orangtua/data-anak", icon: Baby },
+      { label: "Absensi", path: "/orangtua/absensi", icon: ClipboardCheck },
+      { label: "Kegiatan Harian", path: "/orangtua/kegiatan", icon: BookOpen },
+      { label: "Raport", path: "/orangtua/raport", icon: FileText },
+    ],
+  },
+  {
+    title: "Pembayaran",
+    items: [
+      { label: "Pembayaran SPP", path: "/orangtua/pembayaran", icon: Wallet },
+    ],
   },
 ];
 
-export default function GuruSidebar({ isOpen, onClose }) {
+export default function OrangtuaSidebar({ isOpen, onClose }) {
   const { user } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
 
@@ -51,7 +54,7 @@ export default function GuruSidebar({ isOpen, onClose }) {
       )}
 
       <aside
-        className={`fixed lg:static inset-y-0 left-0 z-40 flex flex-col
+        className={`fixed lg:static inset-y-0 left-0 z-40 flex shrink-0 flex-col
           bg-[#16302C] text-[#E7E2D6] shadow-xl shadow-black/10
           transition-[transform,width] duration-200 ease-out
           ${isOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0
@@ -65,7 +68,7 @@ export default function GuruSidebar({ isOpen, onClose }) {
             <p className="truncate font-display text-[15px] font-bold tracking-tight text-white">
               Tunas Ceria
             </p>
-            <p className="truncate text-[11px] text-[#9FB3AC]">Panel Guru</p>
+            <p className="truncate text-[11px] text-[#9FB3AC]">Panel Orang Tua</p>
           </div>
           <button
             onClick={onClose}
@@ -116,11 +119,11 @@ export default function GuruSidebar({ isOpen, onClose }) {
         <div className="border-t border-white/10 p-3">
           <div className={`flex items-center gap-2.5 rounded-xl px-2 py-2 ${collapsed ? "lg:justify-center" : ""}`}>
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#3C8A7D] text-xs font-bold text-white">
-              {(user?.name || "G").slice(0, 1).toUpperCase()}
+              {(user?.name || "O").slice(0, 1).toUpperCase()}
             </span>
             <div className={`min-w-0 leading-tight ${collapsed ? "lg:hidden" : ""}`}>
               <p className="truncate text-[13px] font-semibold text-white">
-                {user?.name || "Guru"}
+                {user?.name || "Orang Tua"}
               </p>
               <p className="truncate text-[11px] text-[#9FB3AC]">
                 {user?.email || "—"}

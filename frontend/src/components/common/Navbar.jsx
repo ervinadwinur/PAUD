@@ -13,7 +13,7 @@ import {
   Check,
 } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
-import { accentMap, menuConfig } from "../../utils/menuConfig";
+
 
 
 export default function Navbar({

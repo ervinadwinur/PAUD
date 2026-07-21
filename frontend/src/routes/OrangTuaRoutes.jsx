@@ -3,9 +3,9 @@ import { Routes, Route } from "react-router-dom";
 import Dashboard from "../pages/orangtua/Dashboard";
 import Absensi from "../pages/orangtua/Absensi";
 import Pembayaran from "../pages/orangtua/Pembayaran";
-import Pengumuman from "../pages/orangtua/Pengumuman";
-import Perkembangan from "../pages/orangtua/Perkembangan";
-import ProfilAnak from "../pages/orangtua/ProfilAnak";
+import Raport from "../pages/orangtua/Raport";
+import KegiatanHarin from "../pages/orangtua/KegiatanHarian";
+import DataAnak from "../pages/orangtua/DataAnak";
 
 const OrangTuaRoutes = () => {
   return (
@@ -13,9 +13,9 @@ const OrangTuaRoutes = () => {
       <Route path="dashboard" element={<Dashboard />} />
       <Route path="absensi" element={<Absensi />} />
       <Route path="pembayaran" element={<Pembayaran />} />
-      <Route path="pengumuman" element={<Pengumuman />} />
-      <Route path="perkembangan" element={<Perkembangan />} />
-      <Route path="profil-anak" element={<ProfilAnak />} />
+      <Route path="raport" element={<Raport />} />
+      <Route path="kegiatan" element={<KegiatanHarin />} />
+      <Route path="data-anak" element={<DataAnak />} />
     </Routes>
   );
 };

@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import api from "../../services/api";
 import { useSiswaList } from "../../hooks/useSiswaList";
 
+
 const ASPEK_OPTIONS = [
   "Motorik Kasar",
   "Motorik Halus",
@@ -17,7 +18,7 @@ function todayISO() {
   return new Date().toISOString().slice(0, 10);
 }
 
-export default function Perkembangan() {
+export default function InputPerkembangan() {
   const { siswaList } = useSiswaList();
 
   const [form, setForm] = useState({

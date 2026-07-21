@@ -1,22 +1,22 @@
+// src/components/orangtua/OrangtuaNavbar.jsx
 import { useState, useRef, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { Menu, Bell, ChevronDown, LogOut, UserRound, Settings } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 
 const pageTitles = {
-  "/guru/dashboard": "Dashboard Guru",
-  "/guru/siswa": "Data Siswa",
-  "/guru/absensi": "Absensi",
-  "/guru/kegiatan": "Kegiatan Harian",
-  "/guru/perkembangan": "Perkembangan Anak",
-  "/guru/raport": "Raport",
-  "/guru/laporan": "Laporan",
+  "/orangtua/dashboard": "Dashboard Orang Tua",
+  "/orangtua/anak": "Data Anak",
+  "/orangtua/absensi": "Absensi",
+  "/orangtua/kegiatan": "Kegiatan Harian",
+  "/orangtua/raport": "Raport",
+  "/orangtua/pembayaran": "Pembayaran SPP",
 };
 
-export default function GuruNavbar({ onMenuClick }) {
+export default function OrangtuaNavbar({ onMenuClick }) {
   const { user, logout } = useAuth();
   const { pathname } = useLocation();
-  const title = pageTitles[pathname] || "Panel Guru";
+  const title = pageTitles[pathname] || "Panel Orang Tua";
 
   const [profileOpen, setProfileOpen] = useState(false);
   const profileRef = useRef(null);
@@ -30,7 +30,7 @@ export default function GuruNavbar({ onMenuClick }) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const initials = (user?.name || "G")
+  const initials = (user?.name || "O")
     .split(" ")
     .map((n) => n[0])
     .slice(0, 2)
@@ -70,10 +70,10 @@ export default function GuruNavbar({ onMenuClick }) {
               </span>
               <span className="hidden text-left sm:block">
                 <span className="block text-sm font-semibold leading-tight text-slate-800">
-                  {user?.name || "Guru"}
+                  {user?.name || "Orang Tua"}
                 </span>
                 <span className="block text-[11px] capitalize leading-tight text-slate-400">
-                  Guru
+                  Orang Tua
                 </span>
               </span>
               <ChevronDown
@@ -86,7 +86,7 @@ export default function GuruNavbar({ onMenuClick }) {
               <div className="absolute right-0 mt-2 w-56 overflow-hidden rounded-2xl border border-slate-200 bg-white py-1.5 shadow-xl shadow-slate-900/5">
                 <div className="border-b border-slate-100 px-4 py-3">
                   <p className="truncate text-sm font-semibold text-slate-800">
-                    {user?.name || "Guru"}
+                    {user?.name || "Orang Tua"}
                   </p>
                   <p className="truncate text-xs text-slate-400">
                     {user?.email || "—"}
