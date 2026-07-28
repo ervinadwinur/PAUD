@@ -12,7 +12,7 @@ async function getAll(req, res) {
     const data = await prisma.siswa.findMany({
       where,
       include: {
-        kelas: { select: { id: true, nama: true } },
+        kelas: { select: { id: true, nama: true, tahunAjaran: true, guru: { select: { nama: true, noTelepon: true } } } },
         orangTua: { select: { id: true, nama: true, noTelepon: true } },
       },
       orderBy: { nama: "asc" },

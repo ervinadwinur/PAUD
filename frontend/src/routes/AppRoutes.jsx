@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import Login from "../pages/auth/Login";
 import Register from "../pages/auth/Register";
+import ForgotPassword from "../pages/auth/ForgotPassword";
 
 import AdminLayout from "../layouts/AdminLayout";
 import AdminRoutes from "./AdminRoutes";
@@ -18,6 +19,7 @@ const AppRoutes = () => {
         <Route path="/" element={<Navigate to="/login" />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
 
         {/* Admin — AdminLayout jadi wrapper, AdminRoutes dirender di Outlet-nya */}
         <Route path="/admin/*" element={<AdminLayout />}>

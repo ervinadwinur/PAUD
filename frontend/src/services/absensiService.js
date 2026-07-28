@@ -1,8 +1,8 @@
 import api from "./api";
 
 const absensiService = {
-  getAll() {
-    return api.get("/absensi");
+  getAll(params) {
+    return api.get("/absensi", { params });
   },
 
   getById(id) {

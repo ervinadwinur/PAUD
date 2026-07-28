@@ -15,7 +15,17 @@ async function getAll(req, res) {
 
     const data = await prisma.pembayaran.findMany({
       where,
-      include: { siswa: { select: { id: true, nama: true, nis: true } } },
+      include: {
+        siswa: {
+          select: {
+            id: true,
+            nama: true,
+            nis: true,
+            kelas: { select: { nama: true } },
+            orangTua: { select: { nama: true, noTelepon: true } },
+          },
+        },
+      },
       orderBy: [{ tahun: "desc" }, { bulan: "desc" }],
     });
     return success(res, "Data pembayaran SPP", data);
@@ -96,4 +106,56 @@ async function verifikasi(req, res) {
   }
 }
 
-module.exports = { getAll, createTagihan, uploadBukti, verifikasi };
+// POST /api/pembayaran/:id/pengingat-wa (Admin)
+// Menyiapkan tautan WhatsApp; pesan baru dikirim setelah admin meninjaunya dan
+// menekan tombol kirim di aplikasi WhatsApp.
+async function buatPengingatWhatsApp(req, res) {
+  try {
+    const pembayaran = await prisma.pembayaran.findUnique({
+      where: { id: Number(req.params.id) },
+      include: {
+        siswa: {
+          include: { orangTua: { select: { nama: true, noTelepon: true } } },
+        },
+      },
+    });
+
+    if (!pembayaran) return error(res, "Data tagihan tidak ditemukan", 404);
+    if (pembayaran.status === "LUNAS") {
+      return error(res, "Pengingat tidak dapat dikirim karena tagihan sudah lunas", 400);
+    }
+
+    const orangTua = pembayaran.siswa.orangTua;
+    if (!orangTua?.noTelepon) {
+      return error(res, "Nomor WhatsApp orang tua belum tersedia", 400);
+    }
+
+    let nomor = orangTua.noTelepon.replace(/\D/g, "");
+    if (nomor.startsWith("0")) nomor = `62${nomor.slice(1)}`;
+    if (!/^62\d{8,13}$/.test(nomor)) {
+      return error(res, "Nomor WhatsApp orang tua tidak valid", 400);
+    }
+
+    const namaBulan = new Intl.DateTimeFormat("id-ID", { month: "long" }).format(
+      new Date(2000, pembayaran.bulan - 1, 1)
+    );
+    const nominal = new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
+      minimumFractionDigits: 0,
+    }).format(pembayaran.jumlah);
+    const namaSekolah = process.env.NAMA_SEKOLAH || "PAUD Kober Al-Musyawaroh";
+    const pesan = `Yth. Bapak/Ibu ${orangTua.nama},\n\nPengingat pembayaran SPP ananda ${pembayaran.siswa.nama} periode ${namaBulan} ${pembayaran.tahun} sebesar ${nominal}. Status tagihan saat ini: ${pembayaran.status.replace(/_/g, " ")}.\n\nMohon segera melakukan pembayaran dan mengunggah bukti pembayaran melalui aplikasi.\n\nTerima kasih.\n${namaSekolah}`;
+
+    return success(res, "Tautan pengingat WhatsApp berhasil dibuat", {
+      namaOrangTua: orangTua.nama,
+      nomor,
+      pesan,
+      whatsappUrl: `https://wa.me/${nomor}?text=${encodeURIComponent(pesan)}`,
+    });
+  } catch (err) {
+    return error(res, "Gagal membuat pengingat WhatsApp", 500, err.message);
+  }
+}
+
+module.exports = { getAll, createTagihan, uploadBukti, verifikasi, buatPengingatWhatsApp };

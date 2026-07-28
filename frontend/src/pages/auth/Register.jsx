@@ -10,7 +10,7 @@ const Register = () => {
     email: "",
     password: "",
     konfirmasiPassword: "",
-    role: "orangtua",
+      noTelepon: "",
   });
 
   const [loading, setLoading] = useState(false);
@@ -32,7 +32,8 @@ const Register = () => {
     try {
       setLoading(true);
 
-      await authService.register(form);
+      const username = form.email.split("@")[0].toLowerCase().replace(/[^a-z0-9._-]/g, "");
+      await authService.register({ username, nama: form.nama, email: form.email, password: form.password, noTelepon: form.noTelepon });
 
       alert("Registrasi berhasil.");
 
@@ -90,16 +91,7 @@ const Register = () => {
             required
           />
 
-          <select
-            name="role"
-            className="w-full border rounded-lg p-3"
-            value={form.role}
-            onChange={handleChange}
-          >
-            <option value="orangtua">Orang Tua</option>
-            <option value="guru">Guru</option>
-            <option value="admin">Admin</option>
-          </select>
+          <input type="tel" name="noTelepon" placeholder="Nomor WhatsApp" className="w-full border rounded-lg p-3" value={form.noTelepon} onChange={handleChange} />
 
           <button
             type="submit"

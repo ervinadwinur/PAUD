@@ -5,6 +5,18 @@ const pembayaranService = {
     return api.get("/pembayaran");
   },
 
+  buatPengingatWhatsApp(id) {
+    return api.post(`/pembayaran/${id}/pengingat-wa`);
+  },
+
+  uploadBukti(id, data) {
+    return api.post(`/pembayaran/${id}/upload-bukti`, data, { headers: { "Content-Type": "multipart/form-data" } });
+  },
+
+  verifikasi(id, data) {
+    return api.put(`/pembayaran/${id}/verifikasi`, data);
+  },
+
   getById(id) {
     return api.get(`/pembayaran/${id}`);
   },

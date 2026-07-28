@@ -2,23 +2,23 @@ import api from "./api";
 
 const penilaianService = {
   getAll() {
-    return api.get("/penilaian");
+    return api.get("/perkembangan");
   },
 
   getById(id) {
-    return api.get(`/penilaian/${id}`);
+    return api.get(`/perkembangan/${id}`);
   },
 
   create(data) {
-    return api.post("/penilaian", data);
+    return api.post("/perkembangan", data);
   },
 
   update(id, data) {
-    return api.put(`/penilaian/${id}`, data);
+    return api.put(`/perkembangan/${id}`, data);
   },
 
   delete(id) {
-    return api.delete(`/penilaian/${id}`);
+    return api.delete(`/perkembangan/${id}`);
   },
 };
 

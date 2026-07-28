@@ -1,6 +1,6 @@
 // src/components/orangtua/OrangtuaNavbar.jsx
 import { useState, useRef, useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Menu, Bell, ChevronDown, LogOut, UserRound, Settings } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 
@@ -16,6 +16,7 @@ const pageTitles = {
 export default function OrangtuaNavbar({ onMenuClick }) {
   const { user, logout } = useAuth();
   const { pathname } = useLocation();
+  const navigate = useNavigate();
   const title = pageTitles[pathname] || "Panel Orang Tua";
 
   const [profileOpen, setProfileOpen] = useState(false);
@@ -29,6 +30,12 @@ export default function OrangtuaNavbar({ onMenuClick }) {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  const handleLogout = () => {
+    setProfileOpen(false);
+    logout();
+    navigate("/login", { replace: true });
+  };
 
   const initials = (user?.name || "O")
     .split(" ")
@@ -100,7 +107,7 @@ export default function OrangtuaNavbar({ onMenuClick }) {
                 </button>
                 <div className="my-1 h-px bg-slate-100" />
                 <button
-                  onClick={logout}
+                  onClick={handleLogout}
                   className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm font-medium text-[#FF6F59] hover:bg-[#FF6F59]/5"
                 >
                   <LogOut size={16} /> Keluar
