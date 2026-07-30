@@ -63,7 +63,7 @@ export default function GuruSidebar({ isOpen, onClose }) {
           </span>
           <div className={`min-w-0 leading-tight ${collapsed ? "lg:hidden" : ""}`}>
             <p className="truncate font-display text-[15px] font-bold tracking-tight text-white">
-              Tunas Ceria
+              PAUD Kober Al-Musyawaroh
             </p>
             <p className="truncate text-[11px] text-[#9FB3AC]">Panel Guru</p>
           </div>

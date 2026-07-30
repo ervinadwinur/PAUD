@@ -57,7 +57,7 @@ export default function Login() {
             </span>
             <div className="leading-tight">
               <p className="font-display text-base font-bold tracking-tight text-white">
-                Tunas Ceria
+                PAUD Kober Al-Musyawaroh
               </p>
               <p className="text-[11px] text-[#9FB3AC]">
                 Sistem Informasi PAUD

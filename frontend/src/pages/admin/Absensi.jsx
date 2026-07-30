@@ -37,15 +37,15 @@ const colorClasses = {
 };
 
 const siswaKelas = [
-  { id: 1, nama: "Ahmad Fauzi" },
-  { id: 2, nama: "Bunga Anggraini" },
-  { id: 3, nama: "Citra Maharani" },
-  { id: 4, nama: "Dimas Prakoso" },
-  { id: 5, nama: "Eka Putri" },
-  { id: 6, nama: "Farhan Ramadhan" },
+  { id: 1, nama: " Bu Siti" },
+  { id: 2, nama: "Bu Bunga Anggraini" },
+  { id: 3, nama: "Bu Citra Maharani" },
+  { id: 4, nama: "Bapak Dimas Prakoso" },
+  { id: 5, nama: "Bu Eka Putri" },
+  { id: 6, nama: "Bapak Farhan Ramadhan" },
 ];
 
-const namaKelas = "Kelinci";
+const namaKelas = "";
 
 export default function Absensi() {
   const [tanggal, setTanggal] = useState(
@@ -84,10 +84,10 @@ export default function Absensi() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="font-display text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-            Absensi Kelas {namaKelas}
+            Absensi Guru {namaKelas}
           </h1>
           <p className="mt-1 text-sm text-slate-500">
-            Tandai kehadiran siswa untuk hari ini.
+            Tandai kehadiran guru untuk hari ini.
           </p>
         </div>
         <label className="relative">
@@ -132,7 +132,7 @@ export default function Absensi() {
         <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
           <span className="flex items-center gap-2 text-sm font-semibold text-slate-700">
             <Users size={16} className="text-slate-400" />
-            {siswaKelas.length} siswa
+            {siswaKelas.length} guru
           </span>
           <button
             onClick={setAllHadir}

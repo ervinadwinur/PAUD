@@ -33,7 +33,7 @@ export default function AuthLayout() {
           </span>
           <div className="leading-tight">
             <p className="font-display text-lg font-bold tracking-tight text-white">
-              Tunas Ceria
+              PAUD Kober Al-Musyawaroh
             </p>
             <p className="text-xs text-[#9FB3AC]">Sistem Informasi PAUD</p>
           </div>

@@ -76,7 +76,7 @@ export default function Sidebar({ isOpen, onClose }) {
             className={`min-w-0 leading-tight ${collapsed ? "lg:hidden" : ""}`}
           >
             <p className="truncate font-display text-[15px] font-bold tracking-tight text-white">
-              PAUD Kober Al-Musyawaroh
+              PAUD Kober AL-Musyawaroh
             </p>
             <p className="truncate text-[11px] text-[#9FB3AC]">
               Sistem Informasi PAUD

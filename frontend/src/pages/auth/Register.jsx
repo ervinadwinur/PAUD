@@ -97,8 +97,6 @@ const Register = () => {
             onChange={handleChange}
           >
             <option value="orangtua">Orang Tua</option>
-            <option value="guru">Guru</option>
-            <option value="admin">Admin</option>
           </select>
 
           <button
