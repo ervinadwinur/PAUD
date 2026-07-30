@@ -15,4 +15,5 @@ router.use("/laporan", require("./laporan.routes"));
 router.use("/pengumuman", require("./pengumuman.routes"));
 router.use("/pengaturan", require("./pengaturan.routes"));
 
+
 module.exports = router;
