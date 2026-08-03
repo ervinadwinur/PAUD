@@ -7,10 +7,11 @@ const Register = () => {
 
   const [form, setForm] = useState({
     nama: "",
+    namaAnak: "",
     email: "",
     password: "",
     konfirmasiPassword: "",
-    role: "orangtua",
+    noTelepon: "",
   });
 
   const [loading, setLoading] = useState(false);
@@ -32,7 +33,15 @@ const Register = () => {
     try {
       setLoading(true);
 
-      await authService.register(form);
+      const username = form.email.split("@")[0].toLowerCase().replace(/[^a-z0-9._-]/g, "");
+      await authService.register({
+        username,
+        nama: form.nama,
+        namaAnak: form.namaAnak,
+        email: form.email,
+        password: form.password,
+        noTelepon: form.noTelepon,
+      });
 
       alert("Registrasi berhasil.");
 
@@ -53,9 +62,19 @@ const Register = () => {
           <input
             type="text"
             name="nama"
-            placeholder="Nama Lengkap"
+            placeholder="Nama Lengkap Orang Tua"
             className="w-full border rounded-lg p-3"
             value={form.nama}
+            onChange={handleChange}
+            required
+          />
+
+          <input
+            type="text"
+            name="namaAnak"
+            placeholder="Nama Lengkap Anak"
+            className="w-full border rounded-lg p-3"
+            value={form.namaAnak}
             onChange={handleChange}
             required
           />
@@ -90,14 +109,14 @@ const Register = () => {
             required
           />
 
-          <select
-            name="role"
+          <input
+            type="tel"
+            name="noTelepon"
+            placeholder="Nomor WhatsApp"
             className="w-full border rounded-lg p-3"
-            value={form.role}
+            value={form.noTelepon}
             onChange={handleChange}
-          >
-            <option value="orangtua">Orang Tua</option>
-          </select>
+          />
 
           <button
             type="submit"

@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Image as ImageIcon,
   Sparkles,
@@ -9,17 +9,11 @@ import {
   Calendar,
   X,
 } from "lucide-react";
+import siswaService from "../../services/siswaService";
+import kegiatanHarianService from "../../services/kegiatanHarianService";
+import perkembanganService from "../../services/perkembanganService";
 
-// ================== DUMMY DATA ==================
-// Ganti dengan data dari API:
-// GET /api/orangtua/anak                          -> daftar anak
-// GET /api/kegiatan-harian?siswaId=&bulan=&tahun=  -> aktivitas harian
-// GET /api/perkembangan?siswaId=                   -> catatan perkembangan per aspek
-
-const DUMMY_ANAK = [
-  { id: 1, nama: "Ahmad Fauzi", kelas: "Kelompok A" },
-  { id: 2, nama: "Kirana Ahmad", kelas: "Kelompok B" },
-];
+const API_BASE_URL = (import.meta.env.VITE_API_URL || "http://localhost:5000/api").replace(/\/api\/?$/, "");
 
 const ASPEK_CONFIG = {
   motorik: { label: "Motorik", icon: Dumbbell, text: "text-orange-700", bg: "bg-orange-50" },
@@ -31,79 +25,6 @@ const ASPEK_CONFIG = {
     text: "text-rose-700",
     bg: "bg-rose-50",
   },
-};
-
-const DUMMY_KEGIATAN = {
-  1: [
-    {
-      id: 1,
-      tanggal: "2026-07-14",
-      judul: "Bermain Puzzle Bentuk",
-      deskripsi:
-        "Ahmad antusias menyusun puzzle bentuk geometri bersama teman-teman. Mampu menyelesaikan 8 dari 10 keping tanpa bantuan.",
-      fotoUrl: null,
-    },
-    {
-      id: 2,
-      tanggal: "2026-07-13",
-      judul: "Menyanyi & Gerak Lagu",
-      deskripsi: "Mengikuti kegiatan menyanyi 'Balonku' dengan gerakan tangan yang sesuai irama.",
-      fotoUrl: null,
-    },
-    {
-      id: 3,
-      tanggal: "2026-07-10",
-      judul: "Mewarnai Gambar Hewan",
-      deskripsi: "Mewarnai gambar kucing dengan rapi, memilih kombinasi warna yang menarik.",
-      fotoUrl: null,
-    },
-  ],
-  2: [
-    {
-      id: 4,
-      tanggal: "2026-07-14",
-      judul: "Bercerita di Depan Kelas",
-      deskripsi: "Kirana berani bercerita pengalaman liburannya di depan teman sekelas.",
-      fotoUrl: null,
-    },
-  ],
-};
-
-const DUMMY_PERKEMBANGAN = {
-  1: [
-    {
-      id: 1,
-      aspek: "motorik",
-      deskripsi: "Mampu melompat dengan satu kaki secara seimbang dan menangkap bola kecil.",
-      tanggal: "2026-07-08",
-    },
-    {
-      id: 2,
-      aspek: "kognitif",
-      deskripsi: "Sudah bisa mengurutkan angka 1-10 dan mengenali pola sederhana.",
-      tanggal: "2026-07-05",
-    },
-    {
-      id: 3,
-      aspek: "bahasa",
-      deskripsi: "Kosakata bertambah, mulai menyusun kalimat 4-5 kata dengan struktur baik.",
-      tanggal: "2026-06-28",
-    },
-    {
-      id: 4,
-      aspek: "sosial-emosional",
-      deskripsi: "Lebih mudah berbagi mainan dan mau menunggu giliran saat bermain kelompok.",
-      tanggal: "2026-06-20",
-    },
-  ],
-  2: [
-    {
-      id: 5,
-      aspek: "bahasa",
-      deskripsi: "Percaya diri berbicara di depan umum, artikulasi kata sudah jelas.",
-      tanggal: "2026-07-12",
-    },
-  ],
 };
 
 function formatTanggal(dateStr) {
@@ -120,22 +41,61 @@ const TABS = [
 ];
 
 const KegiatanHarian = () => {
-  const [selectedAnak, setSelectedAnak] = useState(DUMMY_ANAK[0]?.id ?? null);
+  const [anakList, setAnakList] = useState([]);
+  const [selectedAnak, setSelectedAnak] = useState(null);
   const [activeTab, setActiveTab] = useState("kegiatan");
   const [selectedKegiatan, setSelectedKegiatan] = useState(null);
 
-  const kegiatan = useMemo(
-    () =>
-      (DUMMY_KEGIATAN[selectedAnak] || [])
-        .slice()
-        .sort((a, b) => new Date(b.tanggal) - new Date(a.tanggal)),
-    [selectedAnak]
-  );
+  const [kegiatan, setKegiatan] = useState([]);
+  const [perkembangan, setPerkembangan] = useState([]);
+  const [loadingAnak, setLoadingAnak] = useState(true);
+  const [loadingKegiatan, setLoadingKegiatan] = useState(false);
+  const [loadingPerkembangan, setLoadingPerkembangan] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
 
-  const perkembangan = useMemo(
-    () => (DUMMY_PERKEMBANGAN[selectedAnak] || []),
-    [selectedAnak]
-  );
+  // Ambil daftar anak milik orang tua yang login
+  useEffect(() => {
+    async function fetchAnak() {
+      try {
+        const data = await siswaService.getAll();
+        setAnakList(data);
+        if (data.length > 0) setSelectedAnak(data[0]);
+      } catch (err) {
+        setErrorMsg("Gagal memuat data anak.");
+      } finally {
+        setLoadingAnak(false);
+      }
+    }
+    fetchAnak();
+  }, []);
+
+  // Ambil kegiatan harian kelas anak yang dipilih
+  useEffect(() => {
+    if (!selectedAnak?.kelasId) {
+      setKegiatan([]);
+      return;
+    }
+    setLoadingKegiatan(true);
+    kegiatanHarianService
+      .getByKelas(selectedAnak.kelasId)
+      .then(setKegiatan)
+      .catch(() => setKegiatan([]))
+      .finally(() => setLoadingKegiatan(false));
+  }, [selectedAnak]);
+
+  // Ambil perkembangan anak yang dipilih
+  useEffect(() => {
+    if (!selectedAnak?.id) {
+      setPerkembangan([]);
+      return;
+    }
+    setLoadingPerkembangan(true);
+    perkembanganService
+      .getBySiswa(selectedAnak.id)
+      .then(setPerkembangan)
+      .catch(() => setPerkembangan([]))
+      .finally(() => setLoadingPerkembangan(false));
+  }, [selectedAnak]);
 
   const perkembanganByAspek = useMemo(() => {
     const grouped = {};
@@ -143,11 +103,33 @@ const KegiatanHarian = () => {
       if (!grouped[p.aspek]) grouped[p.aspek] = [];
       grouped[p.aspek].push(p);
     });
-    Object.values(grouped).forEach((arr) =>
-      arr.sort((a, b) => new Date(b.tanggal) - new Date(a.tanggal))
-    );
     return grouped;
   }, [perkembangan]);
+
+  if (loadingAnak) {
+    return (
+      <div className="space-y-4">
+        <div className="h-8 w-64 animate-pulse rounded-lg bg-slate-100" />
+        <div className="h-40 animate-pulse rounded-xl bg-slate-100" />
+      </div>
+    );
+  }
+
+  if (errorMsg) {
+    return (
+      <div className="rounded-xl border border-rose-200 bg-rose-50 p-6 text-center text-sm text-rose-600">
+        {errorMsg}
+      </div>
+    );
+  }
+
+  if (anakList.length === 0) {
+    return (
+      <div className="rounded-xl border border-dashed border-slate-200 bg-white p-10 text-center text-slate-400">
+        Belum ada data anak yang terdaftar pada akun Anda.
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -160,14 +142,14 @@ const KegiatanHarian = () => {
       </div>
 
       {/* Selector anak */}
-      {DUMMY_ANAK.length > 1 && (
-        <div className="flex gap-2">
-          {DUMMY_ANAK.map((anak) => (
+      {anakList.length > 1 && (
+        <div className="flex flex-wrap gap-2">
+          {anakList.map((anak) => (
             <button
               key={anak.id}
-              onClick={() => setSelectedAnak(anak.id)}
+              onClick={() => setSelectedAnak(anak)}
               className={`rounded-lg border px-4 py-2 text-sm font-medium transition ${
-                selectedAnak === anak.id
+                selectedAnak?.id === anak.id
                   ? "border-emerald-600 bg-emerald-600 text-white"
                   : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
               }`}
@@ -175,6 +157,12 @@ const KegiatanHarian = () => {
               {anak.nama}
             </button>
           ))}
+        </div>
+      )}
+
+      {!selectedAnak?.kelasId && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
+          {selectedAnak?.nama} belum terdaftar di kelas manapun, sehingga kegiatan harian belum bisa ditampilkan. Hubungi admin sekolah untuk melengkapi data kelas.
         </div>
       )}
 
@@ -198,9 +186,15 @@ const KegiatanHarian = () => {
       {/* Tab: Kegiatan Harian */}
       {activeTab === "kegiatan" && (
         <div className="space-y-4">
-          {kegiatan.length === 0 ? (
+          {loadingKegiatan ? (
+            <div className="space-y-3">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="h-24 animate-pulse rounded-xl bg-slate-100" />
+              ))}
+            </div>
+          ) : kegiatan.length === 0 ? (
             <div className="rounded-xl border border-dashed border-slate-200 bg-white p-10 text-center text-slate-400">
-              Belum ada kegiatan harian yang tercatat.
+              Belum ada kegiatan harian yang tercatat untuk kelas {selectedAnak?.kelas?.nama || "ini"}.
             </div>
           ) : (
             <ol className="relative space-y-5 border-l-2 border-slate-100 pl-6">
@@ -215,7 +209,7 @@ const KegiatanHarian = () => {
                       <Calendar size={13} />
                       {formatTanggal(k.tanggal)}
                     </div>
-                    <p className="mt-1 text-sm font-semibold text-slate-800">{k.judul}</p>
+                    <p className="mt-1 text-sm font-semibold text-slate-800">{k.tema}</p>
                     <p className="mt-1 line-clamp-2 text-sm text-slate-500">{k.deskripsi}</p>
                     {k.fotoUrl && (
                       <span className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-emerald-600">
@@ -234,7 +228,9 @@ const KegiatanHarian = () => {
       {/* Tab: Perkembangan */}
       {activeTab === "perkembangan" && (
         <div className="space-y-5">
-          {perkembangan.length === 0 ? (
+          {loadingPerkembangan ? (
+            <div className="h-24 animate-pulse rounded-xl bg-slate-100" />
+          ) : perkembangan.length === 0 ? (
             <div className="rounded-xl border border-dashed border-slate-200 bg-white p-10 text-center text-slate-400">
               Belum ada catatan perkembangan untuk anak ini.
             </div>
@@ -289,8 +285,8 @@ const KegiatanHarian = () => {
             <div className="space-y-3 px-6 py-5">
               {selectedKegiatan.fotoUrl ? (
                 <img
-                  src={selectedKegiatan.fotoUrl}
-                  alt={selectedKegiatan.judul}
+                  src={`${API_BASE_URL}${selectedKegiatan.fotoUrl}`}
+                  alt={selectedKegiatan.tema}
                   className="w-full rounded-lg object-cover"
                 />
               ) : (
@@ -300,11 +296,17 @@ const KegiatanHarian = () => {
               )}
               <h3 className="flex items-center gap-1.5 text-base font-semibold text-slate-800">
                 <Sparkles size={16} className="text-emerald-500" />
-                {selectedKegiatan.judul}
+                {selectedKegiatan.tema}
               </h3>
               <p className="text-sm leading-relaxed text-slate-600">
                 {selectedKegiatan.deskripsi}
               </p>
+              {selectedKegiatan.catatan && (
+                <div className="rounded-lg bg-amber-50 px-3.5 py-2.5 text-sm text-amber-700">
+                  <span className="font-medium">Catatan guru: </span>
+                  {selectedKegiatan.catatan}
+                </div>
+              )}
             </div>
 
             <div className="border-t border-slate-100 px-6 py-4">

@@ -12,5 +12,8 @@ router.use("/perkembangan", require("./perkembangan.routes"));
 router.use("/rapor", require("./rapor.routes"));
 router.use("/pembayaran", require("./pembayaran.routes"));
 router.use("/laporan", require("./laporan.routes"));
+router.use("/pengumuman", require("./pengumuman.routes"));
+router.use("/pengaturan", require("./pengaturan.routes"));
+
 
 module.exports = router;

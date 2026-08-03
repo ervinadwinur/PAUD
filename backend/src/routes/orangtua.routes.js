@@ -7,6 +7,7 @@ router.use(authenticate, authorize("ADMIN"));
 
 router.get("/", orangTuaController.getAll);
 router.get("/:id", orangTuaController.getById);
+router.post("/", orangTuaController.create);
 router.put("/:id", orangTuaController.update);
 router.delete("/:id", orangTuaController.remove);
 

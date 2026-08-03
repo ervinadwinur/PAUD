@@ -1,4 +1,6 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import siswaService from "../../services/siswaService";
+import absensiService from "../../services/absensiService";
 import {
   CalendarDays,
   CheckCircle2,
@@ -88,18 +90,34 @@ function formatTanggalPanjang(dateStr) {
 }
 
 const Absensi = () => {
-  const [selectedAnak, setSelectedAnak] = useState(DUMMY_ANAK[0]?.id ?? null);
-  const [periode, setPeriode] = useState({ bulan: 6, tahun: 2026 }); // Juli = index 6
+  const [anakList, setAnakList] = useState([]);
+  const [selectedAnak, setSelectedAnak] = useState(null);
+  const [dataAbsensi, setDataAbsensi] = useState([]);
+  const [periode, setPeriode] = useState({ bulan: new Date().getMonth(), tahun: new Date().getFullYear() });
+
+useEffect(() => {
+  siswaService.getAll().then((res) => {
+    const anak = res.data.data || [];
+    setAnakList(anak);
+    setSelectedAnak(anak[0]?.id || null);
+  });
+}, []);
+
+useEffect(() => {
+  if (selectedAnak) {
+    absensiService.getAll({ siswaId: selectedAnak }).then((res) => setDataAbsensi(res.data.data || []));
+  }
+}, [selectedAnak]);
 
   const riwayat = useMemo(() => {
-    const data = DUMMY_ABSENSI[selectedAnak] || [];
+    const data = dataAbsensi;
     return data
       .filter((a) => {
         const d = new Date(a.tanggal);
         return d.getMonth() === periode.bulan && d.getFullYear() === periode.tahun;
       })
       .sort((a, b) => new Date(b.tanggal) - new Date(a.tanggal));
-  }, [selectedAnak, periode]);
+  }, [dataAbsensi, periode]);
 
   const rekap = useMemo(() => {
     const base = { HADIR: 0, IZIN: 0, SAKIT: 0, ALPA: 0 };
@@ -139,9 +157,9 @@ const Absensi = () => {
 
       {/* Filter: anak + bulan */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        {DUMMY_ANAK.length > 1 && (
+        {anakList.length > 1 && (
           <div className="flex gap-2">
-            {DUMMY_ANAK.map((anak) => (
+            {anakList.map((anak) => (
               <button
                 key={anak.id}
                 onClick={() => setSelectedAnak(anak.id)}

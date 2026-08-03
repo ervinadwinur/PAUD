@@ -20,7 +20,7 @@ app.get("/", (req, res) => {
 });
 
 app.use("/api", routes);
-
+app.use("/uploads/pengumuman", express.static(path.join(__dirname, "../uploads/pengumuman")));
 // 404 handler
 app.use((req, res) => {
   return error(res, "Endpoint tidak ditemukan", 404);

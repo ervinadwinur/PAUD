@@ -1,4 +1,5 @@
 const prisma = require("../config/db");
+const bcrypt = require("bcryptjs");
 const { success, error } = require("../utils/response");
 
 async function getAll(req, res) {
@@ -27,6 +28,15 @@ async function getById(req, res) {
   }
 }
 
+async function create(req, res) {
+  try {
+    const { username, email, password, nama, noTelepon, alamat } = req.body;
+    if (!username || !password || !nama) return error(res, "Username, password, dan nama wajib diisi", 400);
+    const user = await prisma.user.create({ data: { username, email, password: await bcrypt.hash(password, 10), role: "ORANGTUA", orangTua: { create: { nama, noTelepon, alamat } } }, include: { orangTua: true } });
+    return success(res, "Data orang tua berhasil ditambahkan", user.orangTua, 201);
+  } catch (err) { return error(res, "Gagal menambahkan orang tua", 500, err.message); }
+}
+
 async function update(req, res) {
   try {
     const { id } = req.params;
@@ -51,4 +61,4 @@ async function remove(req, res) {
   }
 }
 
-module.exports = { getAll, getById, update, remove };
+module.exports = { getAll, getById, create, update, remove };

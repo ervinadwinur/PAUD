@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   UserPlus,
   Search,
@@ -6,245 +6,225 @@ import {
   Trash2,
   User,
   Users,
+  UserRound,
   Shield,
-  Mail,
-  Phone,
-  Calendar,
-  MoreVertical,
   CheckCircle,
   XCircle,
   AlertCircle,
   RefreshCw,
-  Filter,
-  ChevronDown,
   UserCheck,
-  UserX,
   Lock,
   Unlock,
   Eye,
   EyeOff
 } from 'lucide-react';
+import api from '../../services/api';
+import { useUserList } from '../../hooks/useUserList';
+
+const PAGE_SIZE = 10;
+
+const EMPTY_FORM = {
+  username: '',
+  email: '',
+  password: '',
+  role: 'GURU',
+  nama: '',
+  nip: '',
+  noTelepon: '',
+  alamat: ''
+};
+
+const ROLE_LABEL = { ADMIN: 'Admin', GURU: 'Guru', ORANGTUA: 'Orang Tua' };
+
+function getNama(user) {
+  return user.guru?.nama || user.orangTua?.nama || user.username;
+}
+function getNoTelp(user) {
+  return user.guru?.noTelepon || user.orangTua?.noTelepon || '-';
+}
+function getAlamat(user) {
+  return user.guru?.alamat || user.orangTua?.alamat || '-';
+}
+function formatTanggal(iso) {
+  if (!iso) return '-';
+  return new Date(iso).toLocaleDateString('id-ID');
+}
 
 const KelolaPengguna = () => {
+  const { userList, setUserList, loading, error, refetch } = useUserList();
+
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRole, setSelectedRole] = useState('semua');
   const [selectedStatus, setSelectedStatus] = useState('semua');
+  const [page, setPage] = useState(1);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
-  const [formData, setFormData] = useState({
-    nama: '',
-    email: '',
-    password: '',
-    role: 'guru',
-    status: 'aktif',
-    noTelp: '',
-    alamat: ''
-  });
+  const [formData, setFormData] = useState(EMPTY_FORM);
+  const [formError, setFormError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
-  // Data pengguna
-  const [users, setUsers] = useState([
-    {
-      id: 1,
-      nama: 'Dr. Ahmad Suryadi, M.Pd.',
-      email: 'ahmad.suryadi@sekolah.com',
-      role: 'admin',
-      status: 'aktif',
-      noTelp: '081234567890',
-      alamat: 'Jl. Pendidikan No. 123, Jakarta',
-      tanggalDaftar: '01-01-2024',
-      lastLogin: '15-07-2026 08:30'
-    },
-    {
-      id: 2,
-      nama: 'Drs. Budi Santoso',
-      email: 'budi.santoso@sekolah.com',
-      role: 'guru',
-      status: 'aktif',
-      noTelp: '081234567891',
-      alamat: 'Jl. Guru No. 45, Bandung',
-      tanggalDaftar: '15-01-2024',
-      lastLogin: '14-07-2026 15:20'
-    },
-    {
-      id: 3,
-      nama: 'Siti Rahmawati, S.Pd.',
-      email: 'siti.rahmawati@sekolah.com',
-      role: 'guru',
-      status: 'aktif',
-      noTelp: '081234567892',
-      alamat: 'Jl. Mawar No. 7, Surabaya',
-      tanggalDaftar: '20-01-2024',
-      lastLogin: '15-07-2026 07:45'
-    },
-    {
-      id: 4,
-      nama: 'Drs. H. Muhammad Ali',
-      email: 'muhammad.ali@sekolah.com',
-      role: 'guru',
-      status: 'nonaktif',
-      noTelp: '081234567893',
-      alamat: 'Jl. Agama No. 9, Semarang',
-      tanggalDaftar: '10-02-2024',
-      lastLogin: '10-07-2026 09:00'
-    },
-    {
-      id: 5,
-      nama: 'Nina Kusuma, S.Si.',
-      email: 'nina.kusuma@sekolah.com',
-      role: 'guru',
-      status: 'aktif',
-      noTelp: '081234567894',
-      alamat: 'Jl. Sains No. 15, Yogyakarta',
-      tanggalDaftar: '25-02-2024',
-      lastLogin: '15-07-2026 10:15'
-    },
-    {
-      id: 6,
-      nama: 'Rina Wati, S.Kom.',
-      email: 'rina.wati@sekolah.com',
-      role: 'admin',
-      status: 'aktif',
-      noTelp: '081234567895',
-      alamat: 'Jl. Teknologi No. 20, Malang',
-      tanggalDaftar: '01-03-2024',
-      lastLogin: '15-07-2026 11:30'
-    },
-    {
-      id: 7,
-      nama: 'Fajar Pratama, S.Pd.',
-      email: 'fajar.pratama@sekolah.com',
-      role: 'guru',
-      status: 'aktif',
-      noTelp: '081234567896',
-      alamat: 'Jl. Olahraga No. 10, Medan',
-      tanggalDaftar: '05-03-2024',
-      lastLogin: '14-07-2026 13:45'
-    }
-  ]);
+  const [togglingId, setTogglingId] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
+  const [actionError, setActionError] = useState('');
 
   // Statistik pengguna
   const stats = [
-    { 
-      label: 'Total Pengguna', 
-      value: users.length, 
-      icon: Users, 
-      color: 'bg-blue-50 text-blue-600' 
+    {
+      label: 'Total Pengguna',
+      value: userList.length,
+      icon: Users,
+      color: 'bg-blue-50 text-blue-600'
     },
-    { 
-      label: 'Admin', 
-      value: users.filter(u => u.role === 'admin').length, 
-      icon: Shield, 
-      color: 'bg-purple-50 text-purple-600' 
+    {
+      label: 'Admin',
+      value: userList.filter(u => u.role === 'ADMIN').length,
+      icon: Shield,
+      color: 'bg-purple-50 text-purple-600'
     },
-    { 
-      label: 'Guru', 
-      value: users.filter(u => u.role === 'guru').length, 
-      icon: User, 
-      color: 'bg-green-50 text-green-600' 
+    {
+      label: 'Guru',
+      value: userList.filter(u => u.role === 'GURU').length,
+      icon: User,
+      color: 'bg-green-50 text-green-600'
     },
-    { 
-      label: 'Aktif', 
-      value: users.filter(u => u.status === 'aktif').length, 
-      icon: UserCheck, 
-      color: 'bg-emerald-50 text-emerald-600' 
+    {
+      label: 'Aktif',
+      value: userList.filter(u => u.isActive).length,
+      icon: UserCheck,
+      color: 'bg-emerald-50 text-emerald-600'
     }
   ];
 
   // Filter pengguna
-  const filteredUsers = users.filter(user => {
-    const matchSearch = user.nama.toLowerCase().includes(searchTerm.toLowerCase()) ||
+  const filteredUsers = userList.filter(user => {
+    const nama = getNama(user).toLowerCase();
+    const matchSearch = nama.includes(searchTerm.toLowerCase()) ||
                        user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
                        user.role.toLowerCase().includes(searchTerm.toLowerCase());
     const matchRole = selectedRole === 'semua' || user.role === selectedRole;
-    const matchStatus = selectedStatus === 'semua' || user.status === selectedStatus;
+    const matchStatus = selectedStatus === 'semua' ||
+                       (selectedStatus === 'aktif' ? user.isActive : !user.isActive);
     return matchSearch && matchRole && matchStatus;
   });
+
+  const totalPages = Math.max(1, Math.ceil(filteredUsers.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const paginatedUsers = useMemo(
+    () => filteredUsers.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE),
+    [filteredUsers, currentPage],
+  );
+
+  function resetFilterDependentPage() {
+    setPage(1);
+  }
 
   // Handle tambah pengguna
   const handleAddUser = () => {
     setEditingId(null);
-    setFormData({
-      nama: '',
-      email: '',
-      password: '',
-      role: 'guru',
-      status: 'aktif',
-      noTelp: '',
-      alamat: ''
-    });
+    setFormData(EMPTY_FORM);
+    setFormError('');
     setIsModalOpen(true);
   };
 
   // Handle edit pengguna
   const handleEditUser = (id) => {
-    const user = users.find(u => u.id === id);
+    const user = userList.find(u => u.id === id);
     if (user) {
       setEditingId(id);
       setFormData({
-        nama: user.nama,
+        username: user.username,
         email: user.email,
         password: '',
         role: user.role,
-        status: user.status,
-        noTelp: user.noTelp,
-        alamat: user.alamat
+        nama: getNama(user),
+        nip: user.guru?.nip || '',
+        noTelepon: user.guru?.noTelepon || user.orangTua?.noTelepon || '',
+        alamat: user.guru?.alamat || user.orangTua?.alamat || ''
       });
+      setFormError('');
       setIsModalOpen(true);
     }
   };
 
   // Handle delete pengguna
-  const handleDeleteUser = (id) => {
-    if (window.confirm('Apakah Anda yakin ingin menghapus pengguna ini?')) {
-      setUsers(users.filter(u => u.id !== id));
+  const handleDeleteUser = async (id) => {
+    if (!window.confirm('Apakah Anda yakin ingin menghapus pengguna ini?')) return;
+
+    setActionError('');
+    setDeletingId(id);
+    try {
+      await api.delete(`/pengguna/${id}`);
+      setUserList(prev => prev.filter(u => u.id !== id));
+    } catch (err) {
+      setActionError(err.response?.data?.message || 'Gagal menghapus pengguna.');
+    } finally {
+      setDeletingId(null);
     }
   };
 
-  // Handle toggle status
-  const handleToggleStatus = (id) => {
-    setUsers(users.map(u => 
-      u.id === id ? { ...u, status: u.status === 'aktif' ? 'nonaktif' : 'aktif' } : u
-    ));
+  // Handle toggle status (isActive)
+  const handleToggleStatus = async (id) => {
+    const user = userList.find(u => u.id === id);
+    if (!user) return;
+    const nextActive = !user.isActive;
+
+    setActionError('');
+    setTogglingId(id);
+    try {
+      await api.put(`/pengguna/${id}`, { isActive: nextActive });
+      setUserList(prev => prev.map(u => (u.id === id ? { ...u, isActive: nextActive } : u)));
+    } catch (err) {
+      setActionError(err.response?.data?.message || 'Gagal mengubah status pengguna.');
+    } finally {
+      setTogglingId(null);
+    }
   };
 
   // Handle submit form
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (editingId) {
-      // Edit existing
-      setUsers(users.map(u => 
-        u.id === editingId 
-          ? { 
-              ...u, 
-              ...formData,
-              password: formData.password || u.password
-            } 
-          : u
-      ));
-    } else {
-      // Add new
-      const newUser = {
-        id: users.length + 1,
-        ...formData,
-        tanggalDaftar: new Date().toLocaleDateString('id-ID'),
-        lastLogin: '-'
-      };
-      setUsers([newUser, ...users]);
+    setFormError('');
+    setSubmitting(true);
+
+    try {
+      if (editingId) {
+        const payload = {
+          email: formData.email,
+          role: formData.role,
+          nama: formData.nama,
+          noTelepon: formData.noTelepon,
+          alamat: formData.alamat,
+          ...(formData.role === 'GURU' && { nip: formData.nip }),
+        };
+
+        const res = await api.put(`/pengguna/${editingId}`, payload);
+
+        if (formData.password) {
+          await api.put(`/pengguna/${editingId}/reset-password`, { newPassword: formData.password });
+        }
+
+        const updated = res.data?.data;
+        setUserList(prev => prev.map(u => (u.id === editingId ? (updated || { ...u, ...payload }) : u)));
+      } else {
+        const res = await api.post('/pengguna', formData);
+        const created = res.data?.data;
+        if (created) {
+          setUserList(prev => [created, ...prev]);
+        } else {
+          await refetch();
+        }
+      }
+
+      setIsModalOpen(false);
+      setEditingId(null);
+      setFormData(EMPTY_FORM);
+    } catch (err) {
+      setFormError(err.response?.data?.message || 'Gagal menyimpan pengguna.');
+    } finally {
+      setSubmitting(false);
     }
-    
-    setIsModalOpen(false);
-    setEditingId(null);
-    setFormData({
-      nama: '',
-      email: '',
-      password: '',
-      role: 'guru',
-      status: 'aktif',
-      noTelp: '',
-      alamat: ''
-    });
   };
 
   // Handle input change
@@ -256,31 +236,30 @@ const KelolaPengguna = () => {
   // Get role badge
   const getRoleBadge = (role) => {
     const roleMap = {
-      admin: { bg: 'bg-purple-100', text: 'text-purple-800', icon: Shield },
-      guru: { bg: 'bg-green-100', text: 'text-green-800', icon: User }
+      ADMIN: { bg: 'bg-purple-100', text: 'text-purple-800', icon: Shield },
+      GURU: { bg: 'bg-green-100', text: 'text-green-800', icon: User },
+      ORANGTUA: { bg: 'bg-amber-100', text: 'text-amber-800', icon: UserRound },
     };
-    const roleInfo = roleMap[role] || roleMap.guru;
+    const roleInfo = roleMap[role] || roleMap.GURU;
     const Icon = roleInfo.icon;
     return (
       <span className={`px-2 py-1 rounded-full text-xs font-semibold flex items-center gap-1 ${roleInfo.bg} ${roleInfo.text}`}>
         <Icon className="w-3 h-3" />
-        {role === 'admin' ? 'Admin' : 'Guru'}
+        {ROLE_LABEL[role] || role}
       </span>
     );
   };
 
   // Get status badge
-  const getStatusBadge = (status) => {
-    const statusMap = {
-      aktif: { bg: 'bg-emerald-100', text: 'text-emerald-800', icon: CheckCircle },
-      nonaktif: { bg: 'bg-red-100', text: 'text-red-800', icon: XCircle }
-    };
-    const statusInfo = statusMap[status] || statusMap.aktif;
+  const getStatusBadge = (isActive) => {
+    const statusInfo = isActive
+      ? { bg: 'bg-emerald-100', text: 'text-emerald-800', icon: CheckCircle, label: 'Aktif' }
+      : { bg: 'bg-red-100', text: 'text-red-800', icon: XCircle, label: 'Nonaktif' };
     const Icon = statusInfo.icon;
     return (
       <span className={`px-2 py-1 rounded-full text-xs font-semibold flex items-center gap-1 ${statusInfo.bg} ${statusInfo.text}`}>
         <Icon className="w-3 h-3" />
-        {status === 'aktif' ? 'Aktif' : 'Nonaktif'}
+        {statusInfo.label}
       </span>
     );
   };
@@ -300,19 +279,30 @@ const KelolaPengguna = () => {
             </p>
           </div>
           <div className="flex gap-2 flex-wrap">
-            <button 
+            <button
               onClick={handleAddUser}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm flex items-center gap-2"
             >
               <UserPlus className="w-4 h-4" />
               Tambah Pengguna
             </button>
-            <button className="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition text-sm flex items-center gap-2">
-              <RefreshCw className="w-4 h-4" />
+            <button
+              onClick={refetch}
+              disabled={loading}
+              className="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition text-sm flex items-center gap-2 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
               Refresh
             </button>
           </div>
         </div>
+
+        {(error || actionError) && (
+          <div className="mb-6 flex items-center gap-2 rounded-lg bg-red-50 px-4 py-3 text-sm font-medium text-red-600">
+            <AlertCircle className="w-4 h-4 flex-shrink-0" />
+            {actionError || 'Gagal memuat data pengguna.'}
+          </div>
+        )}
 
         {/* Statistik */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -343,25 +333,26 @@ const KelolaPengguna = () => {
                 type="text"
                 placeholder="Cari nama, email, atau role..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => { setSearchTerm(e.target.value); resetFilterDependentPage(); }}
                 className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
-            
+
             <div className="flex gap-2 flex-wrap">
               <select
                 value={selectedRole}
-                onChange={(e) => setSelectedRole(e.target.value)}
+                onChange={(e) => { setSelectedRole(e.target.value); resetFilterDependentPage(); }}
                 className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
               >
                 <option value="semua">Semua Role</option>
-                <option value="admin">Admin</option>
-                <option value="guru">Guru</option>
+                <option value="ADMIN">Admin</option>
+                <option value="GURU">Guru</option>
+                <option value="ORANGTUA">Orang Tua</option>
               </select>
 
               <select
                 value={selectedStatus}
-                onChange={(e) => setSelectedStatus(e.target.value)}
+                onChange={(e) => { setSelectedStatus(e.target.value); resetFilterDependentPage(); }}
                 className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
               >
                 <option value="semua">Semua Status</option>
@@ -405,21 +396,27 @@ const KelolaPengguna = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {filteredUsers.length > 0 ? (
-                  filteredUsers.map((user, index) => (
+                {loading ? (
+                  <tr>
+                    <td colSpan="8" className="px-4 py-8 text-center text-sm text-gray-400">
+                      Memuat data pengguna…
+                    </td>
+                  </tr>
+                ) : paginatedUsers.length > 0 ? (
+                  paginatedUsers.map((user, index) => (
                     <tr key={user.id} className="hover:bg-gray-50 transition">
                       <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                        {index + 1}
+                        {(currentPage - 1) * PAGE_SIZE + index + 1}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         <div className="flex items-center gap-2">
                           <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-semibold text-sm flex-shrink-0 ${
-                            user.role === 'admin' ? 'bg-purple-500' : 'bg-green-500'
+                            user.role === 'ADMIN' ? 'bg-purple-500' : user.role === 'GURU' ? 'bg-green-500' : 'bg-amber-500'
                           }`}>
-                            {user.nama.charAt(0)}
+                            {getNama(user).charAt(0).toUpperCase()}
                           </div>
                           <span className="text-sm font-medium text-gray-800">
-                            {user.nama}
+                            {getNama(user)}
                           </span>
                         </div>
                       </td>
@@ -430,13 +427,13 @@ const KelolaPengguna = () => {
                         {getRoleBadge(user.role)}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
-                        {getStatusBadge(user.status)}
+                        {getStatusBadge(user.isActive)}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
-                        {user.noTelp}
+                        {getNoTelp(user)}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
-                        {user.tanggalDaftar}
+                        {formatTanggal(user.createdAt)}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         <div className="flex items-center gap-1">
@@ -449,18 +446,20 @@ const KelolaPengguna = () => {
                           </button>
                           <button
                             onClick={() => handleToggleStatus(user.id)}
-                            className={`p-1.5 rounded-lg transition ${
-                              user.status === 'aktif' 
-                                ? 'bg-yellow-100 text-yellow-600 hover:bg-yellow-200' 
+                            disabled={togglingId === user.id}
+                            className={`p-1.5 rounded-lg transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                              user.isActive
+                                ? 'bg-yellow-100 text-yellow-600 hover:bg-yellow-200'
                                 : 'bg-emerald-100 text-emerald-600 hover:bg-emerald-200'
                             }`}
-                            title={user.status === 'aktif' ? 'Nonaktifkan' : 'Aktifkan'}
+                            title={user.isActive ? 'Nonaktifkan' : 'Aktifkan'}
                           >
-                            {user.status === 'aktif' ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
+                            {user.isActive ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
                           </button>
                           <button
                             onClick={() => handleDeleteUser(user.id)}
-                            className="p-1.5 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition"
+                            disabled={deletingId === user.id}
+                            className="p-1.5 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition disabled:cursor-not-allowed disabled:opacity-60"
                             title="Hapus"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -487,22 +486,34 @@ const KelolaPengguna = () => {
           {/* Footer Tabel */}
           <div className="flex flex-wrap justify-between items-center px-4 py-3 bg-gray-50 border-t border-gray-200 gap-2">
             <p className="text-sm text-gray-600">
-              Menampilkan {filteredUsers.length} dari {users.length} pengguna
+              Menampilkan {paginatedUsers.length} dari {filteredUsers.length} pengguna
             </p>
             <div className="flex gap-1">
-              <button className="px-3 py-1 border border-gray-300 rounded-lg text-sm hover:bg-gray-100 transition">
+              <button
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1 border border-gray-300 rounded-lg text-sm hover:bg-gray-100 transition disabled:cursor-not-allowed disabled:opacity-50"
+              >
                 Previous
               </button>
-              <button className="px-3 py-1 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition">
-                1
-              </button>
-              <button className="px-3 py-1 border border-gray-300 rounded-lg text-sm hover:bg-gray-100 transition">
-                2
-              </button>
-              <button className="px-3 py-1 border border-gray-300 rounded-lg text-sm hover:bg-gray-100 transition">
-                3
-              </button>
-              <button className="px-3 py-1 border border-gray-300 rounded-lg text-sm hover:bg-gray-100 transition">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                <button
+                  key={p}
+                  onClick={() => setPage(p)}
+                  className={`px-3 py-1 rounded-lg text-sm transition ${
+                    p === currentPage
+                      ? 'bg-blue-600 text-white hover:bg-blue-700'
+                      : 'border border-gray-300 hover:bg-gray-100'
+                  }`}
+                >
+                  {p}
+                </button>
+              ))}
+              <button
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1 border border-gray-300 rounded-lg text-sm hover:bg-gray-100 transition disabled:cursor-not-allowed disabled:opacity-50"
+              >
                 Next
               </button>
             </div>
@@ -512,9 +523,9 @@ const KelolaPengguna = () => {
 
       {/* Modal Tambah/Edit Pengguna */}
       {isModalOpen && (
-        <div 
+        <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          style={{ 
+          style={{
             background: 'rgba(0, 0, 0, 0.3)',
             backdropFilter: 'blur(8px)',
             WebkitBackdropFilter: 'blur(8px)'
@@ -540,6 +551,32 @@ const KelolaPengguna = () => {
             </div>
 
             <form onSubmit={handleSubmit} className="p-6 space-y-5">
+              {formError && (
+                <div className="flex items-center gap-2 rounded-lg bg-red-50 px-4 py-3 text-sm font-medium text-red-600">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                  {formError}
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                  Username <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="username"
+                  value={formData.username}
+                  onChange={handleInputChange}
+                  required
+                  disabled={!!editingId}
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition disabled:bg-gray-100 disabled:text-gray-500"
+                  placeholder="Masukkan username"
+                />
+                {editingId && (
+                  <p className="mt-1 text-xs text-gray-500">Username tidak bisa diubah setelah dibuat.</p>
+                )}
+              </div>
+
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1.5">
                   Nama Lengkap <span className="text-red-500">*</span>
@@ -549,7 +586,7 @@ const KelolaPengguna = () => {
                   name="nama"
                   value={formData.nama}
                   onChange={handleInputChange}
-                  required
+                  required={formData.role !== 'ADMIN'}
                   className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
                   placeholder="Masukkan nama lengkap"
                 />
@@ -605,26 +642,32 @@ const KelolaPengguna = () => {
                     value={formData.role}
                     onChange={handleInputChange}
                     required
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition bg-white"
+                    disabled={!!editingId}
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition bg-white disabled:bg-gray-100 disabled:text-gray-500"
                   >
-                    <option value="admin">Admin</option>
-                    <option value="guru">Guru</option>
+                    <option value="ADMIN">Admin</option>
+                    <option value="GURU">Guru</option>
+                    <option value="ORANGTUA">Orang Tua</option>
                   </select>
+                  {editingId && (
+                    <p className="mt-1 text-xs text-gray-500">Ubah role lewat proses terpisah, tidak lewat form ini.</p>
+                  )}
                 </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                    Status
-                  </label>
-                  <select
-                    name="status"
-                    value={formData.status}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition bg-white"
-                  >
-                    <option value="aktif">Aktif</option>
-                    <option value="nonaktif">Nonaktif</option>
-                  </select>
-                </div>
+                {formData.role === 'GURU' && (
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                      NIP
+                    </label>
+                    <input
+                      type="text"
+                      name="nip"
+                      value={formData.nip}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                      placeholder="Masukkan NIP"
+                    />
+                  </div>
+                )}
               </div>
 
               <div>
@@ -633,8 +676,8 @@ const KelolaPengguna = () => {
                 </label>
                 <input
                   type="tel"
-                  name="noTelp"
-                  value={formData.noTelp}
+                  name="noTelepon"
+                  value={formData.noTelepon}
                   onChange={handleInputChange}
                   className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
                   placeholder="Masukkan nomor telepon"
@@ -665,10 +708,11 @@ const KelolaPengguna = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center gap-2 font-medium shadow-sm"
+                  disabled={submitting}
+                  className="px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center gap-2 font-medium shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <CheckCircle className="w-4 h-4" />
-                  {editingId ? 'Update Pengguna' : 'Simpan Pengguna'}
+                  {submitting ? 'Menyimpan…' : editingId ? 'Update Pengguna' : 'Simpan Pengguna'}
                 </button>
               </div>
             </form>
@@ -677,7 +721,7 @@ const KelolaPengguna = () => {
       )}
 
       {/* CSS untuk animasi */}
-      <style jsx>{`
+      <style>{`
         @keyframes fadeIn {
           from {
             opacity: 0;

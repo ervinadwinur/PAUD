@@ -13,8 +13,8 @@ async function getAll(req, res) {
         role: true,
         isActive: true,
         createdAt: true,
-        guru: { select: { id: true, nama: true } },
-        orangTua: { select: { id: true, nama: true } },
+        guru: { select: { id: true, nama: true, nip: true, noTelepon: true, alamat: true } },
+        orangTua: { select: { id: true, nama: true, noTelepon: true, alamat: true } },
       },
       orderBy: { createdAt: "desc" },
     });
@@ -54,14 +54,51 @@ async function create(req, res) {
 }
 
 // PUT /api/pengguna/:id
+// Bisa mengubah email/isActive/role, dan jika pengguna punya profil guru/orangTua
+// terkait, ikut memperbarui nama/no. telepon/alamat (dan nip khusus guru).
 async function update(req, res) {
   try {
     const { id } = req.params;
-    const { email, isActive, role } = req.body;
+    const { email, isActive, role, nama, nip, noTelepon, alamat } = req.body;
+
+    const existing = await prisma.user.findUnique({
+      where: { id: Number(id) },
+      include: { guru: true, orangTua: true },
+    });
+
+    if (!existing) {
+      return error(res, "Pengguna tidak ditemukan", 404);
+    }
+
+    const data = {
+      ...(email !== undefined && { email }),
+      ...(isActive !== undefined && { isActive }),
+      ...(role !== undefined && { role }),
+    };
+
+    if (existing.guru) {
+      data.guru = {
+        update: {
+          ...(nama !== undefined && { nama }),
+          ...(nip !== undefined && { nip }),
+          ...(noTelepon !== undefined && { noTelepon }),
+          ...(alamat !== undefined && { alamat }),
+        },
+      };
+    } else if (existing.orangTua) {
+      data.orangTua = {
+        update: {
+          ...(nama !== undefined && { nama }),
+          ...(noTelepon !== undefined && { noTelepon }),
+          ...(alamat !== undefined && { alamat }),
+        },
+      };
+    }
 
     const user = await prisma.user.update({
       where: { id: Number(id) },
-      data: { email, isActive, role },
+      data,
+      include: { guru: true, orangTua: true },
     });
 
     return success(res, "Pengguna berhasil diperbarui", user);

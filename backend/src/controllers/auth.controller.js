@@ -49,6 +49,50 @@ async function login(req, res) {
   }
 }
 
+// POST /api/auth/register
+// Pendaftaran mandiri hanya membuat akun orang tua; akun admin/guru dikelola admin.
+async function register(req, res) {
+  try {
+    const { username, email, password, nama, noTelepon, alamat, namaAnak } = req.body;
+
+    if (!username || !email || !password || !nama || !namaAnak) {
+      return error(res, "Username, email, password, nama, dan nama anak wajib diisi", 400);
+    }
+
+    const hashed = await bcrypt.hash(password, 10);
+    const user = await prisma.user.create({
+      data: {
+        username,
+        email,
+        password: hashed,
+        role: "ORANGTUA",
+        orangTua: {
+          create: {
+            nama,
+            noTelepon,
+            alamat,
+            anak: { create: [{ nama: namaAnak }] },
+          },
+        },
+      },
+      include: { orangTua: { include: { anak: true } } },
+    });
+
+    return success(res, "Pendaftaran berhasil. Silakan masuk.", { id: user.id, email: user.email }, 201);
+  } catch (err) {
+    return error(res, "Pendaftaran gagal. Username atau email mungkin sudah digunakan", 400, err.message);
+  }
+}
+
+async function forgotPassword(req, res) {
+  try {
+    const { email } = req.body;
+    if (!email) return error(res, "Email wajib diisi", 400);
+    // Sistem belum mengonfigurasi penyedia email; tidak membocorkan apakah akun ada.
+    return success(res, "Permintaan diterima. Silakan hubungi admin sekolah untuk reset kata sandi.");
+  } catch (err) { return error(res, "Permintaan reset password gagal", 500, err.message); }
+}
+
 // GET /api/auth/me
 async function me(req, res) {
   try {
@@ -90,4 +134,4 @@ async function changePassword(req, res) {
   }
 }
 
-module.exports = { login, me, changePassword };
+module.exports = { login, register, forgotPassword, me, changePassword };

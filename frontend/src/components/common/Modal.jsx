@@ -1,7 +1,9 @@
+import { createPortal } from "react-dom";
+
 const Modal = ({ isOpen, title, children, onClose }) => {
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50">
       <div className="bg-white rounded-lg shadow-lg w-full max-w-lg">
         <div className="flex justify-between items-center border-b p-4">
@@ -17,7 +19,8 @@ const Modal = ({ isOpen, title, children, onClose }) => {
 
         <div className="p-5">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

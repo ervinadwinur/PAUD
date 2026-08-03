@@ -46,8 +46,9 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  guru     Guru?
-  orangTua OrangTua?
+  guru       Guru?
+  orangTua   OrangTua?
+  pengumuman Pengumuman[]
 
   @@map("users")
 }
@@ -93,15 +94,16 @@ model OrangTua {
 // ================== KELOLA DATA KELAS ==================
 
 model Kelas {
-  id        Int      @id @default(autoincrement())
-  nama      String
+  id          Int      @id @default(autoincrement())
+  nama        String
   tahunAjaran String?
-  guruId    Int?
-  guru      Guru?    @relation(fields: [guruId], references: [id])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  guruId      Int?
+  guru        Guru?    @relation(fields: [guruId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  siswa Siswa[]
+  siswa          Siswa[]
+  kegiatanHarian KegiatanHarian[]
 
   @@map("kelas")
 }
@@ -109,25 +111,24 @@ model Kelas {
 // ================== KELOLA DATA SISWA ==================
 
 model Siswa {
-  id           Int          @id @default(autoincrement())
-  nis          String       @unique
+  id           Int           @id @default(autoincrement())
+  nis          String?       @unique
   nama         String
-  tanggalLahir DateTime
-  jenisKelamin JenisKelamin
+  tanggalLahir DateTime?
+  jenisKelamin JenisKelamin?
   alamat       String?
   fotoUrl      String?
   kelasId      Int?
-  kelas        Kelas?       @relation(fields: [kelasId], references: [id])
+  kelas        Kelas?        @relation(fields: [kelasId], references: [id])
   orangTuaId   Int?
-  orangTua     OrangTua?    @relation(fields: [orangTuaId], references: [id])
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
+  orangTua     OrangTua?     @relation(fields: [orangTuaId], references: [id])
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 
-  absensi        Absensi[]
-  kegiatanHarian KegiatanHarian[]
-  perkembangan   Perkembangan[]
-  rapor          Rapor[]
-  pembayaran     Pembayaran[]
+  absensi      Absensi[]
+  perkembangan Perkembangan[]
+  rapor        Rapor[]
+  pembayaran   Pembayaran[]
 
   @@map("siswa")
 }
@@ -151,16 +152,19 @@ model Absensi {
 
 model KegiatanHarian {
   id        Int      @id @default(autoincrement())
-  siswaId   Int
-  siswa     Siswa    @relation(fields: [siswaId], references: [id], onDelete: Cascade)
+  kelasId   Int
+  kelas     Kelas    @relation(fields: [kelasId], references: [id], onDelete: Cascade)
   guruId    Int
   guru      Guru     @relation(fields: [guruId], references: [id])
   tanggal   DateTime
-  judul     String
+  tema      String
   deskripsi String
+  catatan   String?
   fotoUrl   String?
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
+  @@unique([kelasId, tanggal])
   @@map("kegiatan_harian")
 }
 
@@ -209,6 +213,7 @@ model Pembayaran {
   tahun             Int
   jumlah            Int
   status            StatusPembayaran @default(BELUM_BAYAR)
+  metode            String?          // Transfer Bank | Tunai | QRIS, dll — diisi saat verifikasi
   buktiUrl          String?
   tanggalUpload     DateTime?
   tanggalVerifikasi DateTime?
@@ -219,4 +224,35 @@ model Pembayaran {
 
   @@unique([siswaId, bulan, tahun])
   @@map("pembayaran_spp")
+}
+
+// ================== PENGUMUMAN & PENGATURAN SEKOLAH ==================
+
+model Pengumuman {
+  id        Int      @id @default(autoincrement())
+  title     String
+  category  String   // akademik | keuangan | event | umum
+  priority  String   // biasa | penting
+  content   String
+  date      DateTime
+  time      String
+  fileName  String?
+  filePath  String?
+  fileSize  String?
+  authorId  Int
+  author    User     @relation(fields: [authorId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PengaturanSekolah {
+  id         Int      @id @default(1)
+  nama       String   @default("PAUD Kober Al-Musyawaroh")
+  alamat     String?
+  noTelepon  String?
+  email      String?
+  namaKepala String?
+  updatedAt  DateTime @updatedAt
+
+  @@map("pengaturan_sekolah")
 }

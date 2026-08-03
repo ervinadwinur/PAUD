@@ -1,77 +1,169 @@
 // src/pages/admin/KelolaGuru.jsx
-import { useState } from "react";
-import { Plus, Search, Pencil, Trash2, X, Mail, Phone } from "lucide-react";
+import { useEffect, useState } from "react";
+import {
+  Plus,
+  Search,
+  Pencil,
+  Trash2,
+  X,
+  Mail,
+  Phone,
+  Copy,
+  Check,
+  KeyRound,
+  Wand2,
+} from "lucide-react";
+import api from "../../services/api";
+import { useKelasList } from "../../hooks/useKelasList";
 
-const initialGuru = [
-  {
-    id: 1,
-    nama: "Siti Aminah",
-    email: "siti.aminah@tunasceria.sch.id",
-    telepon: "0812-3456-7890",
-    kelas: "Kelinci",
-    status: "Aktif",
-  },
-  {
-    id: 2,
-    nama: "Budi Santoso",
-    email: "budi.santoso@tunasceria.sch.id",
-    telepon: "0813-4567-8901",
-    kelas: "Kupu-kupu",
-    status: "Aktif",
-  },
-  {
-    id: 3,
-    nama: "Dewi Lestari",
-    email: "dewi.lestari@tunasceria.sch.id",
-    telepon: "0821-5678-9012",
-    kelas: "Lebah",
-    status: "Cuti",
-  },
-];
+const emptyForm = {
+  nama: "",
+  email: "",
+  telepon: "",
+  kelasId: "",
+  status: "Aktif",
+  password: "",
+};
 
-const emptyForm = { nama: "", email: "", telepon: "", kelas: "", status: "Aktif" };
+function usernameFromEmail(email) {
+  return email.split("@")[0].toLowerCase();
+}
 
 export default function KelolaGuru() {
-  const [guruList, setGuruList] = useState(initialGuru);
+  const { kelasList } = useKelasList();
+
+  const [guruList, setGuruList] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(emptyForm);
+  const [usePasswordCustom, setUsePasswordCustom] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+
+  // Menampilkan password (hasil generate ATAU hasil reset) setelah berhasil
+  const [credentialResult, setCredentialResult] = useState(null); // { email, password }
+  const [copied, setCopied] = useState(false);
+
+  // Reset password guru yang sudah ada
+  const [resetTarget, setResetTarget] = useState(null);
+  const [resetPassword, setResetPassword] = useState("");
+  const [resettingPw, setResettingPw] = useState(false);
+
+  function fetchGuru() {
+    setLoading(true);
+    api
+      .get("/guru")
+      .then((res) => setGuruList(res.data.data || []))
+      .catch(() => setGuruList([]))
+      .finally(() => setLoading(false));
+  }
+
+  useEffect(() => {
+    fetchGuru();
+  }, []);
 
   const filtered = guruList.filter(
     (g) =>
       g.nama.toLowerCase().includes(search.toLowerCase()) ||
-      g.kelas.toLowerCase().includes(search.toLowerCase()),
+      (g.kelas?.nama || "").toLowerCase().includes(search.toLowerCase()),
   );
 
   function openAddModal() {
     setEditingId(null);
     setForm(emptyForm);
+    setUsePasswordCustom(false);
+    setError("");
     setModalOpen(true);
   }
 
   function openEditModal(guru) {
     setEditingId(guru.id);
-    setForm(guru);
+    setForm({
+      nama: guru.nama,
+      email: guru.user?.email || "",
+      telepon: guru.telepon || "",
+      kelasId: guru.kelasId || "",
+      status: guru.user?.isActive ? "Aktif" : "Cuti",
+      password: "",
+    });
+    setError("");
     setModalOpen(true);
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
-    if (editingId) {
-      setGuruList((prev) =>
-        prev.map((g) => (g.id === editingId ? { ...g, ...form } : g)),
-      );
-    } else {
-      setGuruList((prev) => [...prev, { ...form, id: Date.now() }]);
+    setSubmitting(true);
+    setError("");
+    try {
+      if (editingId) {
+        await api.put(`/guru/${editingId}`, form);
+        setModalOpen(false);
+        fetchGuru();
+      } else {
+        const payload = {
+          ...form,
+          username: usernameFromEmail(form.email),
+        };
+        const res = await api.post("/guru", payload);
+        setModalOpen(false);
+        fetchGuru();
+        // Kalau admin set password sendiri, backend tidak mengembalikan generatedPassword
+        // jadi modal kredensial hanya muncul kalau password memang di-generate sistem.
+        if (res.data.data.generatedPassword) {
+          setCredentialResult({
+            email: form.email,
+            password: res.data.data.generatedPassword,
+          });
+        }
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || "Gagal menyimpan data guru.");
+    } finally {
+      setSubmitting(false);
     }
-    setModalOpen(false);
   }
 
-  function handleDelete() {
-    setGuruList((prev) => prev.filter((g) => g.id !== deleteTarget.id));
-    setDeleteTarget(null);
+  async function handleDelete() {
+    try {
+      await api.delete(`/guru/${deleteTarget.id}`);
+      setDeleteTarget(null);
+      fetchGuru();
+    } catch (err) {
+      setError(err.response?.data?.message || "Gagal menghapus data guru.");
+      setDeleteTarget(null);
+    }
+  }
+
+  async function handleResetPassword(e) {
+    e.preventDefault();
+    if (resetPassword.length < 6) {
+      setError("Password minimal 6 karakter.");
+      return;
+    }
+    setResettingPw(true);
+    setError("");
+    try {
+      await api.post(`/guru/${resetTarget.id}/reset-password`, {
+        password: resetPassword,
+      });
+      const emailTarget = resetTarget.user?.email;
+      setResetTarget(null);
+      setCredentialResult({ email: emailTarget, password: resetPassword });
+    } catch (err) {
+      setError(err.response?.data?.message || "Gagal mereset password.");
+    } finally {
+      setResettingPw(false);
+    }
+  }
+
+  function copyCredential() {
+    const text = `Email: ${credentialResult.email}\nPassword: ${credentialResult.password}`;
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   }
 
   return (
@@ -83,7 +175,7 @@ export default function KelolaGuru() {
             Kelola Guru
           </h1>
           <p className="mt-1 text-sm text-slate-500">
-            Kelola data guru dan wali kelas di sekolah.
+            Menambahkan guru otomatis membuat akun login untuk guru tersebut.
           </p>
         </div>
         <button
@@ -93,6 +185,12 @@ export default function KelolaGuru() {
           <Plus size={17} /> Tambah Guru
         </button>
       </div>
+
+      {error && !modalOpen && !resetTarget && (
+        <div className="rounded-xl border border-[#FF6F59]/20 bg-[#FF6F59]/5 px-4 py-3 text-sm font-medium text-[#C4432F]">
+          {error}
+        </div>
+      )}
 
       {/* Search */}
       <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -125,74 +223,98 @@ export default function KelolaGuru() {
               </tr>
             </thead>
             <tbody>
-              {filtered.length === 0 && (
+              {loading ? (
+                Array.from({ length: 3 }).map((_, i) => (
+                  <tr key={i} className="border-b border-slate-50 last:border-0">
+                    <td className="px-5 py-3.5" colSpan={5}>
+                      <div className="h-8 animate-pulse rounded-lg bg-slate-100" />
+                    </td>
+                  </tr>
+                ))
+              ) : filtered.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-5 py-10 text-center text-slate-400">
                     Tidak ada data guru yang cocok.
                   </td>
                 </tr>
+              ) : (
+                filtered.map((g) => (
+                  <tr
+                    key={g.id}
+                    className="border-b border-slate-50 last:border-0 hover:bg-slate-50/60"
+                  >
+                    <td className="px-5 py-3.5">
+                      <div className="flex items-center gap-3">
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#3C8A7D] text-xs font-bold text-white">
+                          {g.nama.split(" ").map((n) => n[0]).slice(0, 2).join("")}
+                        </span>
+                        <span className="font-medium text-slate-800">{g.nama}</span>
+                      </div>
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <div className="flex flex-col gap-0.5 text-xs text-slate-500">
+                        <span className="flex items-center gap-1.5">
+                          <Mail size={12} /> {g.user?.email}
+                        </span>
+                        <span className="flex items-center gap-1.5">
+                          <Phone size={12} /> {g.telepon || "-"}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-5 py-3.5 text-slate-600">
+                      {g.kelas?.nama ? `Kelas ${g.kelas.nama}` : "-"}
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <span
+                        className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                          g.user?.isActive
+                            ? "bg-emerald-50 text-emerald-600"
+                            : "bg-amber-50 text-amber-600"
+                        }`}
+                      >
+                        {g.user?.isActive ? "Aktif" : "Cuti"}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          onClick={() => {
+                            setResetTarget(g);
+                            setResetPassword("");
+                            setError("");
+                          }}
+                          className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-[#5B8DEF]"
+                          aria-label="Reset Password"
+                        >
+                          <KeyRound size={15} />
+                        </button>
+                        <button
+                          onClick={() => openEditModal(g)}
+                          className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-[#3C8A7D]"
+                          aria-label="Edit"
+                        >
+                          <Pencil size={15} />
+                        </button>
+                        <button
+                          onClick={() => setDeleteTarget(g)}
+                          className="rounded-lg p-2 text-slate-500 hover:bg-rose-50 hover:text-rose-500"
+                          aria-label="Hapus"
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
               )}
-              {filtered.map((g) => (
-                <tr
-                  key={g.id}
-                  className="border-b border-slate-50 last:border-0 hover:bg-slate-50/60"
-                >
-                  <td className="px-5 py-3.5">
-                    <div className="flex items-center gap-3">
-                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#3C8A7D] text-xs font-bold text-white">
-                        {g.nama.split(" ").map((n) => n[0]).slice(0, 2).join("")}
-                      </span>
-                      <span className="font-medium text-slate-800">{g.nama}</span>
-                    </div>
-                  </td>
-                  <td className="px-5 py-3.5">
-                    <div className="flex flex-col gap-0.5 text-xs text-slate-500">
-                      <span className="flex items-center gap-1.5">
-                        <Mail size={12} /> {g.email}
-                      </span>
-                      <span className="flex items-center gap-1.5">
-                        <Phone size={12} /> {g.telepon}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-5 py-3.5 text-slate-600">Kelas {g.kelas}</td>
-                  <td className="px-5 py-3.5">
-                    <span
-                      className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-                        g.status === "Aktif"
-                          ? "bg-emerald-50 text-emerald-600"
-                          : "bg-amber-50 text-amber-600"
-                      }`}
-                    >
-                      {g.status}
-                    </span>
-                  </td>
-                  <td className="px-5 py-3.5">
-                    <div className="flex items-center justify-end gap-1.5">
-                      <button
-                        onClick={() => openEditModal(g)}
-                        className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-[#3C8A7D]"
-                        aria-label="Edit"
-                      >
-                        <Pencil size={15} />
-                      </button>
-                      <button
-                        onClick={() => setDeleteTarget(g)}
-                        className="rounded-lg p-2 text-slate-500 hover:bg-rose-50 hover:text-rose-500"
-                        aria-label="Hapus"
-                      >
-                        <Trash2 size={15} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
             </tbody>
           </table>
         </div>
-        <div className="border-t border-slate-100 px-5 py-3 text-xs text-slate-400">
-          Menampilkan {filtered.length} dari {guruList.length} guru
-        </div>
+        {!loading && (
+          <div className="border-t border-slate-100 px-5 py-3 text-xs text-slate-400">
+            Menampilkan {filtered.length} dari {guruList.length} guru
+          </div>
+        )}
       </div>
 
       {/* Modal tambah/edit */}
@@ -211,6 +333,17 @@ export default function KelolaGuru() {
               </button>
             </div>
             <form onSubmit={handleSubmit} className="space-y-4 px-5 py-5">
+              {!editingId && (
+                <p className="rounded-xl bg-[#3C8A7D]/5 px-3.5 py-2.5 text-xs text-[#3C8A7D]">
+                  Akun login akan dibuat otomatis untuk guru ini.
+                </p>
+              )}
+              {error && (
+                <div className="rounded-xl border border-[#FF6F59]/20 bg-[#FF6F59]/5 px-3.5 py-2.5 text-sm text-[#C4432F]">
+                  {error}
+                </div>
+              )}
+
               <div>
                 <label className="mb-1.5 block text-xs font-medium text-slate-600">
                   Nama Lengkap
@@ -225,7 +358,7 @@ export default function KelolaGuru() {
               </div>
               <div>
                 <label className="mb-1.5 block text-xs font-medium text-slate-600">
-                  Email
+                  Email {editingId && <span className="font-normal text-slate-400">(login)</span>}
                 </label>
                 <input
                   required
@@ -235,13 +368,55 @@ export default function KelolaGuru() {
                   className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm outline-none focus:border-[#3C8A7D]/40 focus:ring-4 focus:ring-[#3C8A7D]/10"
                   placeholder="email@tunasceria.sch.id"
                 />
+                {!editingId && (
+                  <p className="mt-1.5 text-[11px] text-slate-400">
+                    Username login: {form.email ? usernameFromEmail(form.email) : "—"}
+                  </p>
+                )}
               </div>
+
+              {/* Password — hanya muncul saat tambah guru baru */}
+              {!editingId && (
+                <div>
+                  <div className="mb-1.5 flex items-center justify-between">
+                    <label className="text-xs font-medium text-slate-600">
+                      Password
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setUsePasswordCustom((v) => !v);
+                        setForm({ ...form, password: "" });
+                      }}
+                      className="flex items-center gap-1 text-xs font-medium text-[#3C8A7D] hover:underline"
+                    >
+                      <Wand2 size={12} />
+                      {usePasswordCustom ? "Generate otomatis" : "Set password sendiri"}
+                    </button>
+                  </div>
+                  {usePasswordCustom ? (
+                    <input
+                      type="text"
+                      required
+                      minLength={6}
+                      value={form.password}
+                      onChange={(e) => setForm({ ...form, password: e.target.value })}
+                      placeholder="Minimal 6 karakter"
+                      className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm outline-none focus:border-[#3C8A7D]/40 focus:ring-4 focus:ring-[#3C8A7D]/10"
+                    />
+                  ) : (
+                    <p className="rounded-xl bg-slate-50 px-3.5 py-2.5 text-xs text-slate-500">
+                      Password akan digenerate otomatis dan ditampilkan setelah disimpan.
+                    </p>
+                  )}
+                </div>
+              )}
+
               <div>
                 <label className="mb-1.5 block text-xs font-medium text-slate-600">
                   Nomor Telepon
                 </label>
                 <input
-                  required
                   value={form.telepon}
                   onChange={(e) => setForm({ ...form, telepon: e.target.value })}
                   className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm outline-none focus:border-[#3C8A7D]/40 focus:ring-4 focus:ring-[#3C8A7D]/10"
@@ -253,13 +428,18 @@ export default function KelolaGuru() {
                   <label className="mb-1.5 block text-xs font-medium text-slate-600">
                     Kelas
                   </label>
-                  <input
-                    required
-                    value={form.kelas}
-                    onChange={(e) => setForm({ ...form, kelas: e.target.value })}
+                  <select
+                    value={form.kelasId}
+                    onChange={(e) => setForm({ ...form, kelasId: e.target.value })}
                     className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm outline-none focus:border-[#3C8A7D]/40 focus:ring-4 focus:ring-[#3C8A7D]/10"
-                    placeholder="Kelinci"
-                  />
+                  >
+                    <option value="">Belum ditugaskan</option>
+                    {kelasList.map((k) => (
+                      <option key={k.id} value={k.id}>
+                        {k.nama}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="mb-1.5 block text-xs font-medium text-slate-600">
@@ -286,12 +466,112 @@ export default function KelolaGuru() {
                 </button>
                 <button
                   type="submit"
-                  className="rounded-xl bg-[#3C8A7D] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#347A6E]"
+                  disabled={submitting}
+                  className="rounded-xl bg-[#3C8A7D] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#347A6E] disabled:opacity-60"
                 >
-                  {editingId ? "Simpan Perubahan" : "Tambah Guru"}
+                  {submitting ? "Menyimpan…" : editingId ? "Simpan Perubahan" : "Tambah Guru"}
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal reset password (guru yang sudah ada) */}
+      {resetTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-[2px]">
+          <div className="w-full max-w-sm rounded-2xl bg-white shadow-xl">
+            <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+              <h2 className="font-display text-base font-bold text-slate-900">
+                Reset Password
+              </h2>
+              <button
+                onClick={() => setResetTarget(null)}
+                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <form onSubmit={handleResetPassword} className="space-y-4 px-5 py-5">
+              {error && (
+                <div className="rounded-xl border border-[#FF6F59]/20 bg-[#FF6F59]/5 px-3.5 py-2.5 text-sm text-[#C4432F]">
+                  {error}
+                </div>
+              )}
+              <p className="text-sm text-slate-500">
+                Set password baru untuk{" "}
+                <span className="font-medium text-slate-700">{resetTarget.nama}</span>.
+              </p>
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-slate-600">
+                  Password Baru
+                </label>
+                <input
+                  type="text"
+                  required
+                  minLength={6}
+                  value={resetPassword}
+                  onChange={(e) => setResetPassword(e.target.value)}
+                  placeholder="Minimal 6 karakter"
+                  className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm outline-none focus:border-[#5B8DEF]/40 focus:ring-4 focus:ring-[#5B8DEF]/10"
+                />
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setResetTarget(null)}
+                  className="rounded-xl px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-100"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={resettingPw}
+                  className="rounded-xl bg-[#5B8DEF] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#4A7CDD] disabled:opacity-60"
+                >
+                  {resettingPw ? "Menyimpan…" : "Reset Password"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal hasil kredensial — muncul setelah tambah guru (generate) ATAU reset password */}
+      {credentialResult && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-[2px]">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl">
+            <h2 className="font-display text-base font-bold text-slate-900">
+              Password berhasil disetel
+            </h2>
+            <p className="mt-1.5 text-sm text-slate-500">
+              Sampaikan kredensial berikut ke guru. Password ini tidak akan ditampilkan lagi.
+            </p>
+
+            <div className="mt-4 space-y-2 rounded-xl bg-slate-50 p-4 font-mono text-sm">
+              <p>
+                <span className="text-slate-400">Email:</span> {credentialResult.email}
+              </p>
+              <p>
+                <span className="text-slate-400">Password:</span> {credentialResult.password}
+              </p>
+            </div>
+
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                onClick={copyCredential}
+                className="flex items-center gap-1.5 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50"
+              >
+                {copied ? <Check size={14} /> : <Copy size={14} />}
+                {copied ? "Tersalin" : "Salin"}
+              </button>
+              <button
+                onClick={() => setCredentialResult(null)}
+                className="rounded-xl bg-[#16302C] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#1E3D3A]"
+              >
+                Selesai
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -304,8 +584,8 @@ export default function KelolaGuru() {
               Hapus data guru?
             </h2>
             <p className="mt-1.5 text-sm text-slate-500">
-              Data <span className="font-medium">{deleteTarget.nama}</span> akan
-              dihapus permanen dan tidak dapat dikembalikan.
+              Data <span className="font-medium">{deleteTarget.nama}</span> beserta
+              akun loginnya akan dihapus permanen.
             </p>
             <div className="mt-5 flex justify-end gap-2">
               <button

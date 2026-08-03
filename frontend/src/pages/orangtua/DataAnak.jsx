@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import siswaService from "../../services/siswaService";
 import {
   User,
   Calendar,
@@ -68,6 +69,21 @@ function formatTanggal(dateStr) {
 
 const DataAnak = () => {
   const [selected, setSelected] = useState(null);
+  const [anakList, setAnakList] = useState([]);
+  const [pesan, setPesan] = useState("");
+
+useEffect(() => {
+  siswaService
+    .getAll()
+    .then((res) => {
+      console.log("DEBUG siswa res:", res);
+      setAnakList(res.data.data || []);
+    })
+    .catch((err) => {
+      console.error("DEBUG siswa error:", err);
+      setPesan(err.response?.data?.message || "Data anak gagal dimuat.");
+    });
+}, []);
 
   return (
     <div className="space-y-6">
@@ -81,7 +97,7 @@ const DataAnak = () => {
 
       {/* Grid kartu anak */}
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-        {DUMMY_ANAK.map((anak) => (
+        {anakList.map((anak) => (
           <div
             key={anak.id}
             className="group flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md"
@@ -118,7 +134,7 @@ const DataAnak = () => {
             <div className="flex-1 space-y-2.5 p-5 text-sm">
               <div className="flex items-center gap-2 text-slate-600">
                 <GraduationCap size={16} className="text-slate-400" />
-                {anak.kelas.nama} — {anak.kelas.tahunAjaran}
+                {anak.kelas?.nama || "Belum ada kelas"} — {anak.kelas?.tahunAjaran || "—"}
               </div>
               <div className="flex items-center gap-2 text-slate-600">
                 <Cake size={16} className="text-slate-400" />
@@ -126,7 +142,7 @@ const DataAnak = () => {
               </div>
               <div className="flex items-center gap-2 text-slate-600">
                 <BadgeCheck size={16} className="text-slate-400" />
-                Wali kelas: {anak.kelas.guru.nama}
+                Wali kelas: {anak.kelas?.guru?.nama || "—"}
               </div>
             </div>
 
@@ -142,7 +158,8 @@ const DataAnak = () => {
         ))}
       </div>
 
-      {DUMMY_ANAK.length === 0 && (
+      {pesan && <div className="rounded-xl bg-red-50 p-4 text-sm text-red-700">{pesan}</div>}
+      {anakList.length === 0 && !pesan && (
         <div className="rounded-xl border border-dashed border-slate-200 bg-white p-10 text-center text-slate-400">
           Belum ada data anak yang terhubung dengan akun Anda. Hubungi admin sekolah jika ini
           tidak sesuai.
@@ -204,7 +221,7 @@ const DataAnak = () => {
                   <div>
                     <dt className="text-xs text-slate-400">Kelas</dt>
                     <dd className="text-sm text-slate-700">
-                      {selected.kelas.nama} — Tahun Ajaran {selected.kelas.tahunAjaran}
+                      {selected.kelas?.nama || "—"} — Tahun Ajaran {selected.kelas?.tahunAjaran || "—"}
                     </dd>
                   </div>
                 </div>
@@ -212,7 +229,7 @@ const DataAnak = () => {
                   <BadgeCheck size={16} className="mt-0.5 shrink-0 text-slate-400" />
                   <div>
                     <dt className="text-xs text-slate-400">Wali Kelas</dt>
-                    <dd className="text-sm text-slate-700">{selected.kelas.guru.nama}</dd>
+                    <dd className="text-sm text-slate-700">{selected.kelas?.guru?.nama || "—"}</dd>
                   </div>
                 </div>
                 <div className="flex items-start gap-3 px-4 py-3">
@@ -220,7 +237,7 @@ const DataAnak = () => {
                   <div>
                     <dt className="text-xs text-slate-400">Kontak Wali Kelas</dt>
                     <dd className="text-sm text-slate-700">
-                      {selected.kelas.guru.noTelepon || "—"}
+                      {selected.kelas?.guru?.noTelepon || "—"}
                     </dd>
                   </div>
                 </div>

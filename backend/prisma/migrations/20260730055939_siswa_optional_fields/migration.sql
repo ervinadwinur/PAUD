@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE "siswa" ALTER COLUMN "nis" DROP NOT NULL,
+ALTER COLUMN "tanggalLahir" DROP NOT NULL,
+ALTER COLUMN "jenisKelamin" DROP NOT NULL;
