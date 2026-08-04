@@ -30,7 +30,7 @@ const menuSections = [
     title: "Data Master",
     items: [
       { label: "Data Siswa", path: "/admin/siswa", icon: Users },
-      { label: "Data Guru", path: "/admin/guru", icon: GraduationCap },
+      { label: "Data Staff", path: "/admin/guru", icon: GraduationCap },
       { label: "Data Orang Tua", path: "/admin/orangtua", icon: UserRound },
       { label: "Data Kelas", path: "/admin/kelas", icon: School },
     ],

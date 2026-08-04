@@ -11,40 +11,6 @@ import {
   Cake,
 } from "lucide-react";
 
-// ================== DUMMY DATA ==================
-// Ganti dengan data dari API (GET /api/orangtua/anak) — hasil filter berdasarkan orangTuaId yang login
-
-const DUMMY_ANAK = [
-  {
-    id: 1,
-    nis: "2025010001",
-    nama: "Ahmad Fauzi",
-    tanggalLahir: "2021-03-14",
-    jenisKelamin: "LAKI_LAKI",
-    alamat: "Jl. Melati No. 12, Bekasi",
-    fotoUrl: null,
-    kelas: {
-      nama: "Kelompok A",
-      tahunAjaran: "2025/2026",
-      guru: { nama: "Siti Aminah", noTelepon: "081234567001" },
-    },
-  },
-  {
-    id: 2,
-    nis: "2025010045",
-    nama: "Kirana Ahmad",
-    tanggalLahir: "2022-08-02",
-    jenisKelamin: "PEREMPUAN",
-    alamat: "Jl. Melati No. 12, Bekasi",
-    fotoUrl: null,
-    kelas: {
-      nama: "Kelompok B",
-      tahunAjaran: "2025/2026",
-      guru: { nama: "Budi Santoso", noTelepon: "081234567002" },
-    },
-  },
-];
-
 function hitungUsia(tanggalLahir) {
   const lahir = new Date(tanggalLahir);
   const now = new Date();
@@ -76,11 +42,9 @@ useEffect(() => {
   siswaService
     .getAll()
     .then((res) => {
-      console.log("DEBUG siswa res:", res);
       setAnakList(res.data.data || []);
     })
     .catch((err) => {
-      console.error("DEBUG siswa error:", err);
       setPesan(err.response?.data?.message || "Data anak gagal dimuat.");
     });
 }, []);

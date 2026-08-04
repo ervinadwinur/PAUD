@@ -120,7 +120,7 @@ export default function KelolaGuru() {
         }
       }
     } catch (err) {
-      setError(err.response?.data?.message || "Gagal menyimpan data guru.");
+      setError(err.response?.data?.message || "Gagal menyimpan data staff.");
     } finally {
       setSubmitting(false);
     }
@@ -132,7 +132,7 @@ export default function KelolaGuru() {
       setDeleteTarget(null);
       fetchGuru();
     } catch (err) {
-      setError(err.response?.data?.message || "Gagal menghapus data guru.");
+      setError(err.response?.data?.message || "Gagal menghapus data staff.");
       setDeleteTarget(null);
     }
   }
@@ -172,17 +172,17 @@ export default function KelolaGuru() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="font-display text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-            Kelola Guru
+            Kelola Staff
           </h1>
           <p className="mt-1 text-sm text-slate-500">
-            Menambahkan guru otomatis membuat akun login untuk guru tersebut.
+            Kelola akun dan data tiga staff pengajar.
           </p>
         </div>
         <button
           onClick={openAddModal}
           className="flex items-center justify-center gap-2 rounded-xl bg-[#3C8A7D] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#347A6E]"
         >
-          <Plus size={17} /> Tambah Guru
+          <Plus size={17} /> Tambah Staff
         </button>
       </div>
 
@@ -234,7 +234,7 @@ export default function KelolaGuru() {
               ) : filtered.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-5 py-10 text-center text-slate-400">
-                    Tidak ada data guru yang cocok.
+                    Tidak ada data staff yang cocok.
                   </td>
                 </tr>
               ) : (
@@ -312,7 +312,7 @@ export default function KelolaGuru() {
         </div>
         {!loading && (
           <div className="border-t border-slate-100 px-5 py-3 text-xs text-slate-400">
-            Menampilkan {filtered.length} dari {guruList.length} guru
+            Menampilkan {filtered.length} dari {guruList.length} staff
           </div>
         )}
       </div>
@@ -323,7 +323,7 @@ export default function KelolaGuru() {
           <div className="w-full max-w-md rounded-2xl bg-white shadow-xl">
             <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
               <h2 className="font-display text-base font-bold text-slate-900">
-                {editingId ? "Edit Data Guru" : "Tambah Guru"}
+                {editingId ? "Edit Data Staff" : "Tambah Staff"}
               </h2>
               <button
                 onClick={() => setModalOpen(false)}
@@ -335,7 +335,7 @@ export default function KelolaGuru() {
             <form onSubmit={handleSubmit} className="space-y-4 px-5 py-5">
               {!editingId && (
                 <p className="rounded-xl bg-[#3C8A7D]/5 px-3.5 py-2.5 text-xs text-[#3C8A7D]">
-                  Akun login akan dibuat otomatis untuk guru ini.
+                  Akun login akan dibuat otomatis untuk staff ini.
                 </p>
               )}
               {error && (
@@ -353,7 +353,7 @@ export default function KelolaGuru() {
                   value={form.nama}
                   onChange={(e) => setForm({ ...form, nama: e.target.value })}
                   className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm outline-none focus:border-[#3C8A7D]/40 focus:ring-4 focus:ring-[#3C8A7D]/10"
-                  placeholder="Nama guru"
+                  placeholder="Nama staff"
                 />
               </div>
               <div>
@@ -469,7 +469,7 @@ export default function KelolaGuru() {
                   disabled={submitting}
                   className="rounded-xl bg-[#3C8A7D] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#347A6E] disabled:opacity-60"
                 >
-                  {submitting ? "Menyimpan…" : editingId ? "Simpan Perubahan" : "Tambah Guru"}
+                  {submitting ? "Menyimpan…" : editingId ? "Simpan Perubahan" : "Tambah Staff"}
                 </button>
               </div>
             </form>
@@ -545,7 +545,7 @@ export default function KelolaGuru() {
               Password berhasil disetel
             </h2>
             <p className="mt-1.5 text-sm text-slate-500">
-              Sampaikan kredensial berikut ke guru. Password ini tidak akan ditampilkan lagi.
+              Sampaikan kredensial berikut ke staff. Password ini tidak akan ditampilkan lagi.
             </p>
 
             <div className="mt-4 space-y-2 rounded-xl bg-slate-50 p-4 font-mono text-sm">
@@ -581,7 +581,7 @@ export default function KelolaGuru() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-[2px]">
           <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl">
             <h2 className="font-display text-base font-bold text-slate-900">
-              Hapus data guru?
+              Hapus data staff?
             </h2>
             <p className="mt-1.5 text-sm text-slate-500">
               Data <span className="font-medium">{deleteTarget.nama}</span> beserta
